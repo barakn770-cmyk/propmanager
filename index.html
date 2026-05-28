@@ -372,34 +372,80 @@ select.form-input option{background:var(--bg3)}
 <div class="modal-backdrop" id="modal-send-message"><div class="modal"><div class="modal-title">Send Message <button class="modal-close" onclick="closeModal('modal-send-message')">×</button></div><div class="form-group"><label class="form-label">To</label><select class="form-input" id="msg-to-tenant"></select></div><div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="msg-subject" placeholder="e.g. Rent reminder"></div><div class="form-group"><label class="form-label">Message</label><textarea class="form-input" id="msg-body" rows="5" style="resize:vertical" placeholder="Type your message…"></textarea></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-send-message')">Cancel</button><button class="btn btn-primary" onclick="submitSendMessage()">Send</button></div></div></div>
 <!-- Delete Confirm -->
 <div class="modal-backdrop" id="modal-delete-confirm"><div class="modal modal-sm" style="text-align:center"><div style="width:50px;height:50px;background:rgba(240,78,106,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><svg width="22" height="22" fill="none" stroke="var(--red)" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></div><div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px">Remove Property?</div><div style="font-size:13px;color:var(--text2);margin-bottom:22px;line-height:1.5"><strong id="delete-prop-name" style="color:var(--text)"></strong><br><span style="font-size:11px;color:var(--text3)">This cannot be undone.</span></div><div style="display:flex;gap:10px;justify-content:center"><button class="btn" style="min-width:100px" onclick="closeModal('modal-delete-confirm')">Cancel</button><button class="btn btn-danger" style="min-width:100px" id="delete-confirm-btn">Remove</button></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 'use strict';
 const LS={get:function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del:function(k){try{localStorage.removeItem(k);}catch(e){}}};
-const USERS_KEY='pm_users',SESSION_KEY='pm_session',AI_KEY_LS='pm_ai_key';
-function getUsers(){return LS.get(USERS_KEY,[]);}
-function saveUsers(u){LS.set(USERS_KEY,u);}
+const AI_KEY_LS='pm_ai_key';
+const SUPABASE_URL='https://mzfyhlgzvusbpbeaznrh.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_xcKLqwdR3Eu6Dwe7aDi3bw_IdAARWhy';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 var currentUser=null,TODAY=new Date();
+var appState={profile:{},properties:[],tenants:[],payments:[],expenses:[],maintenance:[],events:[],documents:[],messages:{}};
+var persistTimer=null,rtChannel=null;
+function blankState(profile){return{profile:profile||{},properties:[],tenants:[],payments:[],expenses:[],maintenance:[],events:[],documents:[],messages:{}};}
+function persist(){
+  clearTimeout(persistTimer);
+  persistTimer=setTimeout(async function(){
+    if(!currentUser)return;
+    var{error}=await sb.from('app_data').upsert({user_id:currentUser.id,data:appState,updated_at:new Date().toISOString()});
+    if(error)showToast('Save failed: '+error.message,'error');
+  },400);
+}
+async function loadAppData(){
+  var{data,error}=await sb.from('app_data').select('data').eq('user_id',currentUser.id).maybeSingle();
+  if(error){showToast('Load failed: '+error.message,'error');return;}
+  if(data&&data.data){
+    var d=data.data;
+    appState={profile:d.profile||{},properties:d.properties||[],tenants:d.tenants||[],payments:d.payments||[],expenses:d.expenses||[],maintenance:d.maintenance||[],events:d.events||[],documents:d.documents||[],messages:d.messages||{}};
+  } else {
+    appState=blankState({first:'User',last:'',currency:'USD',dateFormat:'DD/MM/YYYY',timezone:'UTC',company:'',countries:['United States']});
+    await sb.from('app_data').insert({user_id:currentUser.id,data:appState});
+  }
+}
+function subscribeRealtime(){
+  if(rtChannel){sb.removeChannel(rtChannel);rtChannel=null;}
+  if(!currentUser)return;
+  rtChannel=sb.channel('app_data_'+currentUser.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_data',filter:'user_id=eq.'+currentUser.id},function(payload){
+    if(!payload.new||!payload.new.data)return;
+    var d=payload.new.data;
+    appState={profile:d.profile||{},properties:d.properties||[],tenants:d.tenants||[],payments:d.payments||[],expenses:d.expenses||[],maintenance:d.maintenance||[],events:d.events||[],documents:d.documents||[],messages:d.messages||{}};
+    populateCountryFilters();populatePropertySelects();populateTenantSelects();
+    renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDocuments();renderDashboard();
+    if(document.getElementById('panel-portal').style.display!=='none')initPortal();
+  }).subscribe();
+}
 const PANELS=['dashboard','ai','properties','tenants','payments','expenses','reports','maintenance','calendar','documents','portal','settings'];
 
-function doLogin(){
+async function doLogin(){
   var e=document.getElementById('login-email').value.trim().toLowerCase(),p=document.getElementById('login-password').value;
   if(!e||!p){showAuthError('Please fill in all fields.');return;}
-  var u=getUsers().find(function(x){return x.email.toLowerCase()===e&&x.password===p;});
-  if(!u){showAuthError('Invalid email or password.');return;}
-  currentUser=u;LS.set(SESSION_KEY,{id:u.id,email:u.email});bootApp();
+  var{data,error}=await sb.auth.signInWithPassword({email:e,password:p});
+  if(error){showAuthError(error.message);return;}
+  currentUser=data.user;
+  await loadAppData();
+  bootApp();
 }
-function doRegister(){
+async function doRegister(){
   var f=document.getElementById('reg-first').value.trim(),l=document.getElementById('reg-last').value.trim(),e=document.getElementById('reg-email').value.trim().toLowerCase(),p=document.getElementById('reg-password').value,c=document.getElementById('reg-confirm').value,cur=document.getElementById('reg-currency').value;
   if(!f||!l||!e||!p){showAuthError('Please fill in all fields.');return;}
   if(p.length<8){showAuthError('Password must be at least 8 characters.');return;}
   if(p!==c){showAuthError('Passwords do not match.');return;}
-  var users=getUsers();
-  if(users.find(function(x){return x.email.toLowerCase()===e;})){showAuthError('Email already registered.');return;}
-  var nu={id:'u_'+Date.now(),email:e,password:p,first:f,last:l,currency:cur,dateFormat:'DD/MM/YYYY',timezone:'UTC',company:'',countries:['United States','Ukraine','Portugal']};
-  users.push(nu);saveUsers(users);currentUser=nu;LS.set(SESSION_KEY,{id:nu.id,email:nu.email});showToast('Welcome, '+f+'!','success');bootApp();
+  var{data,error}=await sb.auth.signUp({email:e,password:p});
+  if(error){showAuthError(error.message);return;}
+  if(!data.session){showAuthError('Please check your email to confirm your account, then sign in.');return;}
+  currentUser=data.user;
+  appState=blankState({first:f,last:l,currency:cur,dateFormat:'DD/MM/YYYY',timezone:'UTC',company:'',countries:['United States','Ukraine','Portugal']});
+  var{error:ie}=await sb.from('app_data').insert({user_id:currentUser.id,data:appState});
+  if(ie){showAuthError('Account created but initial save failed: '+ie.message);return;}
+  showToast('Welcome, '+f+'!','success');
+  bootApp();
 }
-function doLogout(){
-  LS.del(SESSION_KEY);currentUser=null;
+async function doLogout(){
+  if(rtChannel){sb.removeChannel(rtChannel);rtChannel=null;}
+  await sb.auth.signOut();
+  currentUser=null;
+  appState=blankState();
   document.getElementById('app-shell').style.display='none';document.getElementById('auth-screen').style.display='flex';
   document.getElementById('login-email').value='';document.getElementById('login-password').value='';switchAuthTab('login');
 }
@@ -414,19 +460,21 @@ function switchAuthTab(t){
 function bootApp(){
   document.getElementById('auth-screen').style.display='none';
   var shell=document.getElementById('app-shell');shell.style.display='flex';shell.style.flexDirection='row';
-  var ini=(currentUser.first[0]||'')+(currentUser.last[0]||'');
+  var p=appState.profile||{};
+  var ini=((p.first||'?')[0]||'')+((p.last||'')[0]||'');
   document.getElementById('user-avatar-sidebar').textContent=ini.toUpperCase();
-  document.getElementById('user-name-sidebar').textContent=currentUser.first+' '+currentUser.last;
+  document.getElementById('user-name-sidebar').textContent=(p.first||'User')+' '+(p.last||'');
   populateCountryFilters();populatePropertySelects();populateTenantSelects();
   buildCalendar(TODAY.getFullYear(),TODAY.getMonth());
   renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDocuments();renderDashboard();loadSettings();
   PANELS.forEach(function(p){var el=document.getElementById('panel-'+p);if(el)el.style.display='none';});
   document.getElementById('panel-dashboard').style.display='flex';
   document.getElementById('dash-sub').textContent=TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  subscribeRealtime();
 }
-window.addEventListener('DOMContentLoaded',function(){
-  var s=LS.get(SESSION_KEY,null);
-  if(s){var u=getUsers().find(function(x){return x.id===s.id&&x.email===s.email;});if(u){currentUser=u;bootApp();return;}}
+window.addEventListener('DOMContentLoaded',async function(){
+  var{data:sessionData}=await sb.auth.getSession();
+  if(sessionData&&sessionData.session){currentUser=sessionData.session.user;await loadAppData();bootApp();return;}
   document.getElementById('auth-screen').style.display='flex';
 });
 function nav(id,el){
@@ -439,15 +487,14 @@ function nav(id,el){
 }
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('open');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
-function uKey(k){return'pm_'+(currentUser?currentUser.id:'g')+'_'+k;}
-function getProps(){return LS.get(uKey('properties'),[]);}function getTenants(){return LS.get(uKey('tenants'),[]);}
-function getPayments(){return LS.get(uKey('payments'),[]);}function getExpenses(){return LS.get(uKey('expenses'),[]);}
-function getMaint(){return LS.get(uKey('maintenance'),[]);}function getEvents(){return LS.get(uKey('events'),[]);}
-function getDocs(){return LS.get(uKey('documents'),[]);}function getMsgs(){return LS.get(uKey('messages'),{});}
-function saveProps(d){LS.set(uKey('properties'),d);}function saveTenants(d){LS.set(uKey('tenants'),d);}
-function savePayments(d){LS.set(uKey('payments'),d);}function saveExpenses(d){LS.set(uKey('expenses'),d);}
-function saveMaint(d){LS.set(uKey('maintenance'),d);}function saveEvents(d){LS.set(uKey('events'),d);}
-function saveDocs(d){LS.set(uKey('documents'),d);}function saveMsgs(d){LS.set(uKey('messages'),d);}
+function getProps(){return appState.properties;}function saveProps(d){appState.properties=d;persist();}
+function getTenants(){return appState.tenants;}function saveTenants(d){appState.tenants=d;persist();}
+function getPayments(){return appState.payments;}function savePayments(d){appState.payments=d;persist();}
+function getExpenses(){return appState.expenses;}function saveExpenses(d){appState.expenses=d;persist();}
+function getMaint(){return appState.maintenance;}function saveMaint(d){appState.maintenance=d;persist();}
+function getEvents(){return appState.events;}function saveEvents(d){appState.events=d;persist();}
+function getDocs(){return appState.documents;}function saveDocs(d){appState.documents=d;persist();}
+function getMsgs(){return appState.messages;}function saveMsgs(d){appState.messages=d;persist();}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function currSymbol(c){return{USD:'$',EUR:'€',UAH:'₴',GBP:'£'}[c]||c;}
 function fmtMoney(a,c){return currSymbol(c||'USD')+Number(a||0).toLocaleString();}
@@ -473,7 +520,7 @@ function countryFlag(c){return COUNTRY_FLAG[c]||'🌍';}
 var TYPE_BADGE={Apartment:'badge-blue',House:'badge-green',Airbnb:'badge-amber',Commercial:'badge-purple',Land:'badge-teal'};
 var STATUS_BADGE={Rented:'badge-green',Vacant:'badge-red',Overdue:'badge-red',Partial:'badge-amber',Paid:'badge-green',Pending:'badge-amber','In Progress':'badge-amber',Open:'badge-red',Scheduled:'badge-blue',Resolved:'badge-green','Due Soon':'badge-amber'};
 function populateCountryFilters(){
-  var countries=(currentUser&&currentUser.countries)||['United States','Ukraine','Portugal'];
+  var countries=(appState.profile&&appState.profile.countries)||['United States','Ukraine','Portugal'];
   var f=document.getElementById('filter-country');
   if(f)f.innerHTML='<option value="">All Countries</option>'+countries.map(function(c){return'<option>'+esc(c)+'</option>';}).join('');
   var ps=document.getElementById('prop-country-select');
@@ -794,15 +841,15 @@ function selectPortalTenant(idx){
   renderPortalMessages(name);
 }
 function renderPortalMessages(tenantName){
-  var allMsgs=getMsgs(),msgs=(allMsgs[uKey(tenantName)]||[]),box=document.getElementById('ptl-messages');if(!box)return;
+  var allMsgs=getMsgs(),msgs=(allMsgs[tenantName]||[]),box=document.getElementById('ptl-messages');if(!box)return;
   box.innerHTML=msgs.length?msgs.map(function(m){var isO=m.from==='owner';return'<div style="display:flex;flex-direction:column;align-items:'+(isO?'flex-end':'flex-start')+';gap:2px"><div style="font-size:10px;color:var(--text3)">'+(isO?'You':esc(tenantName))+' · '+m.time+'</div><div style="max-width:88%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;'+(isO?'background:linear-gradient(135deg,#3D7EF5,#7C5CFC);color:#fff;border-radius:10px 10px 2px 10px':'background:var(--bg3);border:1px solid var(--border);border-radius:10px 10px 10px 2px')+'">'+esc(m.text)+'</div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">No messages yet.</div>';
   box.scrollTop=box.scrollHeight;
 }
 function sendPortalMessage(){
   if(selectedPortalTenant===null)return;var t=getTenants()[selectedPortalTenant];if(!t)return;
   var name=t.first+' '+t.last,inp=document.getElementById('ptl-msg-input'),text=inp&&inp.value.trim();if(!text)return;
-  var allMsgs=getMsgs(),k=uKey(name);if(!allMsgs[k])allMsgs[k]=[];
-  allMsgs[k].push({from:'owner',text:text,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
+  var allMsgs=getMsgs();if(!allMsgs[name])allMsgs[name]=[];
+  allMsgs[name].push({from:'owner',text:text,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
   saveMsgs(allMsgs);if(inp)inp.value='';renderPortalMessages(name);
 }
 function openPortalPayment(){
@@ -813,20 +860,21 @@ function openPortalPayment(){
 function submitSendMessage(){
   var selEl=document.getElementById('msg-to-tenant'),idx=selEl?parseInt(selEl.value,10):0,body=document.getElementById('msg-body').value.trim(),subject=document.getElementById('msg-subject').value.trim();
   if(!body){showToast('Please type a message','error');return;}
-  var t=getTenants()[idx];if(!t)return;var name=t.first+' '+t.last,allMsgs=getMsgs(),k=uKey(name);
-  if(!allMsgs[k])allMsgs[k]=[];allMsgs[k].push({from:'owner',text:(subject?'['+subject+'] ':'')+body,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
+  var t=getTenants()[idx];if(!t)return;var name=t.first+' '+t.last,allMsgs=getMsgs();
+  if(!allMsgs[name])allMsgs[name]=[];allMsgs[name].push({from:'owner',text:(subject?'['+subject+'] ':'')+body,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
   saveMsgs(allMsgs);closeModal('modal-send-message');showToast('Message sent to '+name,'success');
   ['msg-subject','msg-body'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   if(selectedPortalTenant===idx)renderPortalMessages(name);
 }
 function loadSettings(){
   if(!currentUser)return;
-  var g=function(id){return document.getElementById(id);};
-  if(g('set-first'))g('set-first').value=currentUser.first||'';if(g('set-last'))g('set-last').value=currentUser.last||'';
-  if(g('set-email'))g('set-email').value=currentUser.email||'';if(g('set-company'))g('set-company').value=currentUser.company||'';
-  if(g('set-currency'))g('set-currency').value=currentUser.currency||'USD';
-  if(g('set-dateformat'))g('set-dateformat').value=currentUser.dateFormat||'DD/MM/YYYY';
-  if(g('set-timezone'))g('set-timezone').value=currentUser.timezone||'UTC';
+  if(!appState.profile)appState.profile={};
+  var p=appState.profile,g=function(id){return document.getElementById(id);};
+  if(g('set-first'))g('set-first').value=p.first||'';if(g('set-last'))g('set-last').value=p.last||'';
+  if(g('set-email'))g('set-email').value=currentUser.email||'';if(g('set-company'))g('set-company').value=p.company||'';
+  if(g('set-currency'))g('set-currency').value=p.currency||'USD';
+  if(g('set-dateformat'))g('set-dateformat').value=p.dateFormat||'DD/MM/YYYY';
+  if(g('set-timezone'))g('set-timezone').value=p.timezone||'UTC';
   renderCountriesList();
   var keyStatus=g('set-ai-key-status');if(keyStatus){var k=LS.get(AI_KEY_LS,'');keyStatus.textContent=k?'✓ Key saved ('+k.slice(0,7)+'…'+k.slice(-4)+')':'No key set';keyStatus.style.color=k?'var(--green)':'var(--text3)';}
   var keyInput=g('set-ai-key');if(keyInput)keyInput.value='';
@@ -840,33 +888,52 @@ function saveAiKey(){
 function clearAiKey(){LS.del(AI_KEY_LS);loadSettings();showToast('API key removed','info');}
 function saveSettings(){
   if(!currentUser)return;
-  currentUser.first=document.getElementById('set-first').value.trim()||currentUser.first;currentUser.last=document.getElementById('set-last').value.trim()||currentUser.last;currentUser.email=document.getElementById('set-email').value.trim()||currentUser.email;currentUser.company=document.getElementById('set-company').value.trim();currentUser.currency=document.getElementById('set-currency').value;currentUser.dateFormat=document.getElementById('set-dateformat').value;currentUser.timezone=document.getElementById('set-timezone').value;
-  var users=getUsers(),idx=users.findIndex(function(u){return u.id===currentUser.id;});if(idx>=0)users[idx]=currentUser;else users.push(currentUser);saveUsers(users);
-  document.getElementById('user-name-sidebar').textContent=currentUser.first+' '+currentUser.last;document.getElementById('user-avatar-sidebar').textContent=(currentUser.first[0]+currentUser.last[0]).toUpperCase();
-  LS.set(SESSION_KEY,{id:currentUser.id,email:currentUser.email});showToast('Settings saved','success');
+  if(!appState.profile)appState.profile={};
+  var p=appState.profile;
+  p.first=document.getElementById('set-first').value.trim()||p.first||'';
+  p.last=document.getElementById('set-last').value.trim()||p.last||'';
+  p.company=document.getElementById('set-company').value.trim();
+  p.currency=document.getElementById('set-currency').value;
+  p.dateFormat=document.getElementById('set-dateformat').value;
+  p.timezone=document.getElementById('set-timezone').value;
+  persist();
+  document.getElementById('user-name-sidebar').textContent=(p.first||'')+' '+(p.last||'');
+  document.getElementById('user-avatar-sidebar').textContent=(((p.first||'?')[0]||'')+((p.last||'')[0]||'')).toUpperCase();
+  showToast('Settings saved','success');
 }
-function changePassword(){
+async function changePassword(){
   var oldP=document.getElementById('set-old-pass').value,newP=document.getElementById('set-new-pass').value,confP=document.getElementById('set-confirm-pass').value;
   if(!oldP||!newP||!confP){showToast('Please fill all password fields','error');return;}
-  if(oldP!==currentUser.password){showToast('Current password incorrect','error');return;}
   if(newP.length<8){showToast('Min 8 characters','error');return;}
   if(newP!==confP){showToast('Passwords do not match','error');return;}
-  currentUser.password=newP;var users=getUsers(),idx=users.findIndex(function(u){return u.id===currentUser.id;});if(idx>=0)users[idx]=currentUser;saveUsers(users);
-  ['set-old-pass','set-new-pass','set-confirm-pass'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});showToast('Password updated','success');
+  var{error:e1}=await sb.auth.signInWithPassword({email:currentUser.email,password:oldP});
+  if(e1){showToast('Current password incorrect','error');return;}
+  var{error:e2}=await sb.auth.updateUser({password:newP});
+  if(e2){showToast(e2.message,'error');return;}
+  ['set-old-pass','set-new-pass','set-confirm-pass'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  showToast('Password updated','success');
 }
 function renderCountriesList(){
-  var list=document.getElementById('set-countries-list');if(!list||!currentUser)return;var countries=currentUser.countries||[];
+  var list=document.getElementById('set-countries-list');if(!list)return;
+  var countries=(appState.profile&&appState.profile.countries)||[];
   list.innerHTML=countries.length?countries.map(function(c,i){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+countryFlag(c)+' '+esc(c)+'</span><button class="btn btn-sm btn-danger" onclick="removeCountry('+i+')">✕</button></div>';}).join(''):'<div style="font-size:12px;color:var(--text3)">No countries yet.</div>';
 }
 function addCountry(){
   var inp=document.getElementById('set-new-country'),val=inp&&inp.value.trim();if(!val)return;
-  if(!currentUser.countries)currentUser.countries=[];if(currentUser.countries.indexOf(val)===-1)currentUser.countries.push(val);
-  saveSettings();renderCountriesList();populateCountryFilters();if(inp)inp.value='';
+  if(!appState.profile)appState.profile={};
+  if(!appState.profile.countries)appState.profile.countries=[];
+  if(appState.profile.countries.indexOf(val)===-1)appState.profile.countries.push(val);
+  persist();renderCountriesList();populateCountryFilters();if(inp)inp.value='';
 }
-function removeCountry(idx){currentUser.countries.splice(idx,1);saveSettings();renderCountriesList();populateCountryFilters();}
+function removeCountry(idx){
+  if(!appState.profile||!appState.profile.countries)return;
+  appState.profile.countries.splice(idx,1);persist();renderCountriesList();populateCountryFilters();
+}
 function confirmClearAll(){
   if(confirm('Are you sure? This will permanently delete ALL your data. This cannot be undone.')){
-    ['properties','tenants','payments','expenses','maintenance','events','documents','messages'].forEach(function(k){LS.del(uKey(k));});
+    var profile=appState.profile;
+    appState=blankState(profile);
+    persist();
     renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDocuments();renderDashboard();buildCalendar(calYear,calMonth);showToast('All data cleared','info');
   }
 }
@@ -902,7 +969,8 @@ async function sendAI(){
   if(!apiKey){tw.remove();if(err){err.innerHTML='No Anthropic API key set. Open <strong>Settings</strong> → <strong>AI Assistant</strong> and paste your key to enable the assistant.';err.style.display='block';}conversationHistory.pop();aiIsLoading=false;btn.disabled=false;return;}
   var props=getProps(),payments=getPayments();var overdueCount=payments.filter(function(p){return p.status==='Overdue';}).length;
   var countries=[...new Set(props.map(function(p){return p.country;}).filter(Boolean))];
-  var systemPrompt='You are PropManager AI, an expert real estate portfolio assistant. User: '+(currentUser?currentUser.first+' '+currentUser.last:'')+(currentUser&&currentUser.company?', '+currentUser.company:'')+'.\nPortfolio: '+props.length+' properties in '+(countries.join(', ')||'none')+'. '+getTenants().length+' tenants. '+overdueCount+' overdue payments.\nToday: '+TODAY.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'. Use USD unless specified. Respond in plain text, be professional, concise, and actionable.';
+  var pf=appState.profile||{},uName=(pf.first||'')+(pf.last?' '+pf.last:'')||(currentUser?currentUser.email:'');
+  var systemPrompt='You are PropManager AI, an expert real estate portfolio assistant. User: '+uName+(pf.company?', '+pf.company:'')+'.\nPortfolio: '+props.length+' properties in '+(countries.join(', ')||'none')+'. '+getTenants().length+' tenants. '+overdueCount+' overdue payments.\nToday: '+TODAY.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'. Use USD unless specified. Respond in plain text, be professional, concise, and actionable.';
   try{
     var response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system:systemPrompt,messages:conversationHistory.slice(-MAX_HISTORY)})});
     if(!response.ok){var ed=await response.json().catch(function(){return{};});var msg='API error ('+response.status+')';if(response.status===401)msg='Invalid API key — check it in Settings.';else if(response.status===429)msg='Rate limit — please wait a moment.';else if(response.status>=500)msg='Anthropic server error — try again shortly.';else if(ed.error&&ed.error.message)msg=ed.error.message;tw.remove();if(err){err.textContent=msg;err.style.display='block';}conversationHistory.pop();}
