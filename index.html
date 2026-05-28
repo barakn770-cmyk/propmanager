@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PropManager Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080A0F;--bg2:#0E1117;--bg3:#161B24;--bg4:#1E2530;--bg5:#252D3A;--border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);--text:#EDF0F4;--text2:#8B93A4;--text3:#4E5666;--accent:#3D7EF5;--accent2:#5B95FF;--accentg:linear-gradient(135deg,#3D7EF5,#7C5CFC);--green:#2ECC8F;--amber:#F5A623;--red:#F04E6A;--purple:#9B72F5;--teal:#2EC4B6;--r:10px;--r-lg:14px;--r-xl:20px;--shadow:0 8px 32px rgba(0,0,0,0.4);--shadow-lg:0 16px 56px rgba(0,0,0,0.6)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:4px}
+#auth-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(61,126,245,0.15),transparent)}
+.auth-card{width:100%;max-width:420px;padding:40px 36px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-xl);box-shadow:var(--shadow-lg)}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.auth-logo-icon{width:40px;height:40px;background:var(--accentg);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.auth-logo-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.5px}
+.auth-logo-tag{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+.auth-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px}
+.auth-tabs{display:flex;gap:4px;background:var(--bg3);border-radius:8px;padding:3px;margin-bottom:24px}
+.auth-tab{flex:1;padding:7px;text-align:center;font-size:13px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--text3);transition:all .2s}
+.auth-tab.active{background:var(--bg5);color:var(--text)}
+.form-group{margin-bottom:16px}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,126,245,0.12)}
+.form-input::placeholder{color:var(--text3)}
+select.form-input option{background:var(--bg3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.auth-btn{width:100%;padding:12px;background:var(--accentg);border:none;border-radius:var(--r);color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;margin-top:4px}
+.auth-btn:hover{opacity:.9}
+.auth-error{background:rgba(240,78,106,0.1);border:1px solid rgba(240,78,106,0.25);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--red);margin-bottom:16px;display:none}
+.auth-hint{font-size:11px;color:var(--text3);text-align:center;margin-top:16px;line-height:1.5}
+#app-shell{display:none;height:100vh;overflow:hidden}
+#app-shell.visible{display:flex}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;height:100vh;transition:transform .25s;z-index:100}
+.sidebar-logo{padding:22px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-logo-icon{width:28px;height:28px;background:var(--accentg);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-logo-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.3px}
+.sidebar-logo-ver{font-size:9px;color:var(--text3);font-family:'DM Mono',monospace}
+.nav{padding:10px 8px;flex:1;overflow-y:auto}
+.nav-section{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding:10px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);margin:1px 0;transition:all .15s;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(61,126,245,0.12);color:var(--accent2)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:16px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.6}
+.nav-item.active svg{opacity:1}
+.nav-badge{margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:10px}
+.nav-badge.red{background:rgba(240,78,106,0.2);color:var(--red)}
+.nav-badge.blue{background:rgba(61,126,245,0.2);color:var(--accent2)}
+.nav-badge.green{background:rgba(46,204,143,0.2);color:var(--green)}
+.sidebar-bottom{border-top:1px solid var(--border);padding:10px 8px}
+.user-tile{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .15s}
+.user-tile:hover{background:var(--bg3)}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--accentg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;font-family:'Syne',sans-serif}
+.user-name{font-size:13px;font-weight:500}
+.user-role{font-size:10px;color:var(--text3)}
+.user-tile-logout{margin-left:auto;font-size:13px;color:var(--text3);cursor:pointer;padding:4px 6px;border-radius:5px}
+.user-tile-logout:hover{color:var(--red);background:rgba(240,78,106,0.1)}
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;gap:12px}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.page-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;white-space:nowrap;letter-spacing:-.3px}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--bg4);border-color:rgba(255,255,255,.16)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accentg);border:none;color:#fff}
+.btn-primary:hover{opacity:.9;background:var(--accentg)}
+.btn-danger{background:rgba(240,78,106,.1);border-color:rgba(240,78,106,.25);color:var(--red)}
+.btn-danger:hover{background:rgba(240,78,106,.18)}
+.btn-success{background:rgba(46,204,143,.1);border-color:rgba(46,204,143,.25);color:var(--green)}
+.btn-success:hover{background:rgba(46,204,143,.18)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.content{flex:1;overflow-y:auto;padding:22px 24px}
+.panel{display:none;flex-direction:column;height:100%;overflow:hidden}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600}
+.card-link{font-size:12px;color:var(--accent);cursor:pointer;opacity:.8}
+.card-link:hover{opacity:1}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;position:relative;overflow:hidden}
+.metric-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.metric-value{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px;line-height:1}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:5px;display:flex;align-items:center;gap:4px}
+.metric-up{color:var(--green)}.metric-down{color:var(--red)}
+.metric-accent{border-color:rgba(61,126,245,0.2);background:rgba(61,126,245,0.04)}
+.metric-green{border-color:rgba(46,204,143,0.2);background:rgba(46,204,143,0.04)}
+.metric-red{border-color:rgba(240,78,106,0.2);background:rgba(240,78,106,0.04)}
+.metric-amber{border-color:rgba(245,166,35,0.2);background:rgba(245,166,35,0.04)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+.tbl td.primary{color:var(--text);font-weight:500}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,0.015)}
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;white-space:nowrap}
+.badge-green{background:rgba(46,204,143,0.12);color:var(--green)}
+.badge-amber{background:rgba(245,166,35,0.12);color:var(--amber)}
+.badge-red{background:rgba(240,78,106,0.12);color:var(--red)}
+.badge-blue{background:rgba(61,126,245,0.12);color:var(--accent2)}
+.badge-purple{background:rgba(155,114,245,0.12);color:var(--purple)}
+.badge-teal{background:rgba(46,196,182,0.12);color:var(--teal)}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r-xl);padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal-sm{max-width:380px}.modal-lg{max-width:640px}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;padding:0;transition:color .15s}
+.modal-close:hover{color:var(--text)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:11px 15px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);animation:toastIn .25s ease;max-width:340px;pointer-events:all}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(8px)}}
+.toast-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.toast.success .toast-dot{background:var(--green)}.toast.error .toast-dot{background:var(--red)}.toast.info .toast-dot{background:var(--accent)}
+.prog-row{margin-bottom:12px}
+.prog-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:5px}
+.prog-track{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:72px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bar-fill{width:100%;border-radius:3px 3px 0 0;transition:height .6s ease}
+.bar-lbl{font-size:9px;color:var(--text3);font-family:'DM Mono',monospace}
+.row-item{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
+.row-item:last-child{border-bottom:none}
+.row-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.row-info{flex:1;min-width:0}
+.row-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.row-right{text-align:right;flex-shrink:0}
+.row-amount{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--accent2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-hdr{font-size:10px;font-weight:600;color:var(--text3);text-align:center;padding:4px 0}
+.cal-day{font-size:12px;padding:6px 2px;border-radius:6px;cursor:pointer;text-align:center;color:var(--text2);position:relative;transition:background .1s}
+.cal-day:hover{background:var(--bg3);color:var(--text)}
+.cal-day.today{background:var(--accent);color:#fff;font-weight:700}
+.cal-day.has-event::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;background:var(--amber);border-radius:50%}
+.cal-day.today.has-event::after{background:#fff}
+.cal-day.empty{opacity:.25;pointer-events:none}
+.ai-messages{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:78%}.msg.user{align-self:flex-end}.msg.ai{align-self:flex-start}
+.msg-label{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.msg-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.65;word-break:break-word}
+.msg.user .msg-bubble{background:linear-gradient(135deg,#3D7EF5,#7C5CFC);color:#fff;border-radius:12px 12px 2px 12px}
+.msg.ai .msg-bubble{background:var(--bg3);border:1px solid var(--border);border-radius:12px 12px 12px 2px}
+.msg-appear{animation:msgIn .2s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.typing-dots{display:inline-flex;gap:4px;padding:3px 0}
+.typing-dots span{width:5px;height:5px;background:var(--text3);border-radius:50%;animation:dotPulse .8s infinite}
+.typing-dots span:nth-child(2){animation-delay:.15s}.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dotPulse{0%,60%,100%{transform:scale(.7);opacity:.4}30%{transform:scale(1.2);opacity:1}}
+.ai-input-area{padding:14px 18px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.ai-input-row{display:flex;gap:8px;align-items:flex-end}
+.ai-textarea{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;resize:none;height:42px;max-height:120px;outline:none;transition:border-color .2s}
+.ai-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,126,245,.1)}
+.ai-textarea::placeholder{color:var(--text3)}
+.ai-send{width:42px;height:42px;background:var(--accentg);border:none;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s}
+.ai-send:hover:not(:disabled){opacity:.88}.ai-send:disabled{opacity:.4;cursor:not-allowed}.ai-send svg{color:#fff}
+.quick-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.quick-pill{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:5px 11px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none}
+.quick-pill:hover{background:var(--bg4);color:var(--text)}
+.ai-error{background:rgba(240,78,106,.1);border:1px solid rgba(240,78,106,.2);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--red);margin:0 18px 10px}
+.addr-wrapper{position:relative}
+.addr-suggestions{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);z-index:600;overflow:hidden;box-shadow:var(--shadow);max-height:220px;overflow-y:auto}
+.addr-suggestion{padding:9px 12px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.addr-suggestion:last-child{border-bottom:none}
+.addr-suggestion:hover,.addr-suggestion:active{background:var(--bg4);color:var(--text)}
+.addr-suggestion svg{flex-shrink:0;margin-top:2px;opacity:.5}
+.addr-loading{padding:10px 12px;font-size:12px;color:var(--text3);text-align:center}
+.report-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;cursor:pointer;transition:all .18s}
+.report-card:hover{border-color:rgba(255,255,255,.18);transform:translateY(-2px)}
+.report-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.hamburger{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:7px;cursor:pointer;background:var(--bg3);border:1px solid var(--border2)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99;backdrop-filter:blur(2px)}
+.fin-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.fin-row:last-child{border-bottom:none}
+@media(max-width:900px){
+  .hamburger{display:flex}
+  .sidebar{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .metrics{grid-template-columns:repeat(2,1fr) !important}
+  .grid2,.grid3{grid-template-columns:1fr !important}
+}
+</style>
+</head>
+<body>
+<div class="toast-container" id="toast-container"></div>
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon"><svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div><div class="auth-logo-name">PropManager</div><div class="auth-logo-tag">Global Real Estate OS · v3.0</div></div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Register</div>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+    <div id="form-login">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="auth-btn" onclick="doLogin()">Sign In</button>
+      <div class="auth-hint">No account yet? Switch to <strong>Register</strong> above.</div>
+    </div>
+    <div id="form-register" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="reg-first" placeholder="John"></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="reg-last" placeholder="Smith"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="reg-password" placeholder="Min 8 characters"></div>
+      <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" id="reg-confirm" placeholder="Repeat password" onkeydown="if(event.key==='Enter')doRegister()"></div>
+      <div class="form-group"><label class="form-label">Base Currency</label><select class="form-input" id="reg-currency"><option value="USD">USD — US Dollar ($)</option><option value="EUR">EUR — Euro (€)</option><option value="UAH">UAH — Ukrainian Hryvnia (₴)</option><option value="GBP">GBP — British Pound (£)</option></select></div>
+      <button class="auth-btn" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+<div id="app-shell" style="display:none;height:100vh;overflow:hidden;flex-direction:row">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div><div class="sidebar-logo-name">PropManager</div><div class="sidebar-logo-ver">v3.0 Pro</div></div>
+    </div>
+    <div class="nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="nav('dashboard',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+      <div class="nav-item" id="nav-ai" onclick="nav('ai',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>AI Assistant<span class="nav-badge blue">AI</span></div>
+      <div class="nav-section">Portfolio</div>
+      <div class="nav-item" id="nav-properties" onclick="nav('properties',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Properties<span class="nav-badge blue" id="nav-props-badge">0</span></div>
+      <div class="nav-item" id="nav-tenants" onclick="nav('tenants',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Tenants<span class="nav-badge green" id="nav-tenants-badge">0</span></div>
+      <div class="nav-section">Financials</div>
+      <div class="nav-item" id="nav-payments" onclick="nav('payments',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Payments<span class="nav-badge red" id="nav-pay-badge" style="display:none">0</span></div>
+      <div class="nav-item" id="nav-expenses" onclick="nav('expenses',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Expenses</div>
+      <div class="nav-item" id="nav-reports" onclick="nav('reports',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports</div>
+      <div class="nav-section">Operations</div>
+      <div class="nav-item" id="nav-maintenance" onclick="nav('maintenance',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Maintenance<span class="nav-badge red" id="nav-maint-badge" style="display:none">0</span></div>
+      <div class="nav-item" id="nav-calendar" onclick="nav('calendar',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Calendar</div>
+      <div class="nav-item" id="nav-documents" onclick="nav('documents',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Documents</div>
+      <div class="nav-item" id="nav-portal" onclick="nav('portal',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>Tenant Portal</div>
+      <div class="nav-section">Account</div>
+      <div class="nav-item" id="nav-settings" onclick="nav('settings',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user-tile">
+        <div class="user-avatar" id="user-avatar-sidebar">?</div>
+        <div><div class="user-name" id="user-name-sidebar">—</div><div class="user-role">Property Owner</div></div>
+        <div class="user-tile-logout" onclick="doLogout()" title="Sign out">⏻</div>
+      </div>
+    </div>
+  </div>
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div id="panel-dashboard" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-sub"></div></div></div><div class="topbar-right"><button class="btn" onclick="nav('ai',document.getElementById('nav-ai'))"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Ask AI</button><button class="btn btn-primary" onclick="openModal('modal-property')">+ Add Property</button></div></div>
+      <div class="content">
+        <div class="metrics"><div class="metric metric-accent"><div class="metric-label">Total Properties</div><div class="metric-value" id="dm-props">0</div><div class="metric-sub" id="dm-props-sub"></div></div><div class="metric metric-green"><div class="metric-label">Revenue Collected</div><div class="metric-value" id="dm-revenue">—</div><div class="metric-sub" id="dm-revenue-sub"></div></div><div class="metric metric-amber"><div class="metric-label">Occupancy Rate</div><div class="metric-value" id="dm-occupancy">—</div><div class="metric-sub" id="dm-occ-sub"></div></div><div class="metric metric-red"><div class="metric-label">Overdue Payments</div><div class="metric-value" id="dm-overdue">0</div><div class="metric-sub" id="dm-overdue-sub"></div></div></div>
+        <div class="grid2"><div class="card"><div class="card-header"><div class="card-title">Recent Properties</div><div class="card-link" onclick="nav('properties',document.getElementById('nav-properties'))">View all →</div></div><div id="dash-props-list"><div style="font-size:12px;color:var(--text3);padding:12px 0">No properties yet.</div></div></div><div class="card"><div class="card-header"><div class="card-title">Pending Payments</div><div class="card-link" onclick="nav('payments',document.getElementById('nav-payments'))">View all →</div></div><div id="dash-pay-list"><div style="font-size:12px;color:var(--text3);padding:12px 0">No pending payments.</div></div></div></div>
+        <div class="grid2"><div class="card"><div class="card-header"><div class="card-title">Portfolio by Country</div></div><div id="dash-countries"></div><div style="margin-top:18px"><div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Revenue — Last 6 Months</div><div class="bar-chart" id="dash-bars"></div></div></div><div class="card"><div class="card-header"><div class="card-title">Upcoming Events</div><div class="card-link" onclick="nav('calendar',document.getElementById('nav-calendar'))">Calendar →</div></div><div id="dash-events"></div></div></div>
+      </div>
+    </div>
+    <!-- AI ASSISTANT -->
+    <div id="panel-ai" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div style="width:32px;height:32px;background:linear-gradient(135deg,#3D7EF5,#7C5CFC);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="15" height="15" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div><div class="page-title">AI Assistant</div><div class="page-sub">Powered by Claude · portfolio-aware</div></div></div><div class="topbar-right"><button class="btn btn-danger btn-sm" onclick="clearChat()">Clear</button></div></div>
+      <div class="ai-messages" id="ai-messages"><div class="msg ai msg-appear"><div class="msg-label">PropManager AI</div><div class="msg-bubble">👋 Hello! I'm your AI real estate assistant, powered by Claude.<br><br>I'm aware of your entire portfolio across all countries. I can help with lease drafting, rent analysis, yield calculations, tenant communications, maintenance advice, and more.<br><br>What can I help you with today?</div></div></div>
+      <div id="ai-error" style="display:none" class="ai-error"></div>
+      <div class="ai-input-area"><div class="quick-pills"><div class="quick-pill" onclick="quickAsk('Draft a professional rent increase notice of 5%')">📝 Rent increase notice</div><div class="quick-pill" onclick="quickAsk('Write a follow-up message for my overdue tenants')">💸 Overdue follow-up</div><div class="quick-pill" onclick="quickAsk('What key clauses should I include in an Airbnb rental agreement?')">📋 Airbnb lease clauses</div><div class="quick-pill" onclick="quickAsk('Calculate my gross yield, net yield (15% expenses), and cap rate')">📊 Yield analysis</div><div class="quick-pill" onclick="quickAsk('What are the main tax obligations for a landlord with properties in the US, Ukraine, and Portugal?')">🌍 International tax</div></div><div class="ai-input-row"><textarea class="ai-textarea" id="ai-input" placeholder="Ask anything about your properties…" onkeydown="aiKeydown(event)" oninput="autoResize(this)"></textarea><button class="ai-send" id="ai-send-btn" onclick="sendAI()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
+    </div>
+    <!-- PROPERTIES -->
+    <div id="panel-properties" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Properties <span style="color:var(--text3);font-weight:400;font-family:'DM Mono',monospace;font-size:14px" id="props-count-title"></span></div></div><div class="topbar-right"><select class="btn" id="filter-country" onchange="renderProperties()"><option value="">All Countries</option></select><select class="btn" id="filter-type" onchange="renderProperties()"><option value="">All Types</option><option value="Apartment">Apartment</option><option value="House">House</option><option value="Airbnb">Airbnb</option><option value="Commercial">Commercial</option><option value="Land">Land</option></select><select class="btn" id="filter-status" onchange="renderProperties()"><option value="">All Status</option><option value="Rented">Rented</option><option value="Vacant">Vacant</option><option value="Overdue">Overdue</option><option value="Partial">Partial</option></select><button class="btn btn-primary" onclick="openModal('modal-property')">+ Add Property</button></div></div>
+      <div class="content"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Address</th><th>Country</th><th>Type</th><th>Tenant</th><th>Rent/mo</th><th>Status</th><th>Actions</th></tr></thead><tbody id="props-tbody"></tbody></table></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:12px;color:var(--text3)"><span id="props-page-info"></span><div style="display:flex;gap:6px"><button class="btn btn-sm" id="props-prev" onclick="propsPrevPage()">← Prev</button><button class="btn btn-primary btn-sm" id="props-next" onclick="propsNextPage()">Next →</button></div></div></div>
+    </div>
+    <!-- TENANTS -->
+    <div id="panel-tenants" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Tenants</div></div><div class="topbar-right"><select class="btn" id="filter-tenant-status" onchange="renderTenants()"><option value="">All</option><option value="Paid">Paid</option><option value="Overdue">Overdue</option><option value="Due Soon">Due Soon</option><option value="Pending">Pending</option></select><button class="btn btn-primary" onclick="openModal('modal-tenant')">+ Add Tenant</button></div></div>
+      <div class="content"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Property</th><th>Country</th><th>Lease Start</th><th>Lease End</th><th>Rent/mo</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tenants-tbody"></tbody></table></div><div style="margin-top:12px;font-size:12px;color:var(--text3)" id="tenants-page-info"></div></div>
+    </div>
+    <!-- PAYMENTS -->
+    <div id="panel-payments" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Payments</div></div><div class="topbar-right"><select class="btn" id="pay-filter-status" onchange="renderPayments()"><option value="">All</option><option value="Paid">Paid</option><option value="Pending">Pending</option><option value="Overdue">Overdue</option></select><button class="btn btn-primary" onclick="openModal('modal-payment')">+ Record Payment</button></div></div>
+      <div class="content"><div class="grid3" style="margin-bottom:20px"><div class="metric metric-green"><div class="metric-label">Collected</div><div class="metric-value" id="pay-collected">—</div><div class="metric-sub" id="pay-collected-pct"></div></div><div class="metric metric-red"><div class="metric-label">Outstanding</div><div class="metric-value" id="pay-outstanding">—</div><div class="metric-sub" id="pay-outstanding-count"></div></div><div class="metric"><div class="metric-label">Total Records</div><div class="metric-value" id="pay-total-count">0</div></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tenant</th><th>Property</th><th>Amount</th><th>Curr.</th><th>Due Date</th><th>Paid Date</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead><tbody id="pay-tbody"></tbody></table></div><div style="margin-top:12px;font-size:12px;color:var(--text3)" id="pay-page-info"></div></div>
+    </div>
+    <!-- EXPENSES -->
+    <div id="panel-expenses" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Expenses</div></div><div class="topbar-right"><select class="btn" id="exp-filter-cat" onchange="renderExpenses()"><option value="">All Categories</option><option>Maintenance</option><option>Insurance</option><option>Property Tax</option><option>Management Fee</option><option>Utilities</option><option>HOA</option><option>Legal</option><option>Other</option></select><button class="btn btn-primary" onclick="openModal('modal-expense')">+ Add Expense</button></div></div>
+      <div class="content"><div class="grid3" style="margin-bottom:20px"><div class="metric metric-red"><div class="metric-label">Total Expenses</div><div class="metric-value" id="exp-total">—</div><div class="metric-sub">All time</div></div><div class="metric"><div class="metric-label">This Month</div><div class="metric-value" id="exp-month">—</div></div><div class="metric metric-green"><div class="metric-label">Net Income</div><div class="metric-value" id="exp-net">—</div><div class="metric-sub">Revenue − Expenses</div></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Property</th><th>Category</th><th>Description</th><th>Amount</th><th>Curr.</th><th>Actions</th></tr></thead><tbody id="exp-tbody"></tbody></table></div><div style="margin-top:12px;font-size:12px;color:var(--text3)" id="exp-page-info"></div></div>
+    </div>
+    <!-- REPORTS -->
+    <div id="panel-reports" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Reports</div></div></div>
+      <div class="content"><div class="grid2" style="margin-bottom:20px"><div class="report-card" onclick="showReportDetail('revenue')"><div class="report-icon" style="background:rgba(61,126,245,.12)"><svg width="20" height="20" fill="none" stroke="var(--accent2)" stroke-width="1.5" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:600;margin-bottom:4px">Revenue Report</div><div style="font-size:12px;color:var(--text3);line-height:1.5">Income by property, country, and period.</div><div style="font-size:12px;color:var(--accent);margin-top:12px">View report →</div></div><div class="report-card" onclick="showReportDetail('pnl')"><div class="report-icon" style="background:rgba(46,204,143,.1)"><svg width="20" height="20" fill="none" stroke="var(--green)" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:600;margin-bottom:4px">P&amp;L Statement</div><div style="font-size:12px;color:var(--text3);line-height:1.5">Revenue vs. expenses. Net operating income per property.</div><div style="font-size:12px;color:var(--green);margin-top:12px">View report →</div></div><div class="report-card" onclick="showReportDetail('occupancy')"><div class="report-icon" style="background:rgba(245,166,35,.1)"><svg width="20" height="20" fill="none" stroke="var(--amber)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:600;margin-bottom:4px">Occupancy Report</div><div style="font-size:12px;color:var(--text3);line-height:1.5">Vacancy rates, lease durations, turnover analysis.</div><div style="font-size:12px;color:var(--amber);margin-top:12px">View report →</div></div><div class="report-card" onclick="showReportDetail('tax')"><div class="report-icon" style="background:rgba(155,114,245,.1)"><svg width="20" height="20" fill="none" stroke="var(--purple)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:600;margin-bottom:4px">Tax Summary</div><div style="font-size:12px;color:var(--text3);line-height:1.5">Annual income summary by country for tax reporting.</div><div style="font-size:12px;color:var(--purple);margin-top:12px">View report →</div></div></div><div class="card" id="report-detail" style="display:none"><div class="card-header"><div class="card-title" id="report-detail-title"></div><button class="btn btn-sm" onclick="document.getElementById('report-detail').style.display='none'">✕ Close</button></div><div id="report-detail-body"></div></div></div>
+    </div>
+    <!-- MAINTENANCE -->
+    <div id="panel-maintenance" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Maintenance</div></div><div class="topbar-right"><select class="btn" id="maint-filter" onchange="renderMaintenance()"><option value="">All</option><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Scheduled">Scheduled</option><option value="Resolved">Resolved</option></select><button class="btn btn-primary" onclick="openModal('modal-maintenance')">+ New Request</button></div></div>
+      <div class="content"><div class="grid3" style="margin-bottom:20px"><div class="metric metric-red"><div class="metric-label">Open</div><div class="metric-value" id="maint-open-count">0</div></div><div class="metric metric-amber"><div class="metric-label">In Progress</div><div class="metric-value" id="maint-progress-count">0</div></div><div class="metric metric-green"><div class="metric-label">Resolved This Month</div><div class="metric-value" id="maint-resolved-count">0</div></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Property</th><th>Country</th><th>Issue</th><th>Priority</th><th>Opened</th><th>Cost</th><th>Status</th><th>Actions</th></tr></thead><tbody id="maint-tbody"></tbody></table></div></div>
+    </div>
+    <!-- CALENDAR -->
+    <div id="panel-calendar" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Calendar</div></div><div class="topbar-right"><button class="btn btn-primary" onclick="openModal('modal-event')">+ Add Event</button></div></div>
+      <div class="content"><div class="grid2"><div class="card"><div class="card-header"><button class="btn btn-sm" onclick="calPrev()">←</button><div class="card-title" id="cal-month-label" style="flex:1;text-align:center"></div><button class="btn btn-sm" onclick="calNext()">→</button></div><div class="cal-grid" id="cal-grid"></div></div><div class="card"><div class="card-header"><div class="card-title">All Events</div></div><div id="cal-events-list" style="max-height:340px;overflow-y:auto"></div></div></div></div>
+    </div>
+    <!-- DOCUMENTS -->
+    <div id="panel-documents" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Documents</div></div><div class="topbar-right"><button class="btn btn-primary" onclick="openModal('modal-document')">+ Add Document</button></div></div>
+      <div class="content"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Property</th><th>Type</th><th>Date</th><th>Notes / URL</th><th>Actions</th></tr></thead><tbody id="docs-tbody"></tbody></table></div></div>
+    </div>
+    <!-- TENANT PORTAL -->
+    <div id="panel-portal" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div><div class="page-title">Tenant Portal</div><div class="page-sub">Manage tenant communications &amp; access</div></div></div><div class="topbar-right"><button class="btn btn-primary" onclick="openModal('modal-send-message')">✉ Send Message</button></div></div>
+      <div class="content">
+        <div class="card" style="margin-bottom:14px"><div class="card-header" style="margin-bottom:10px"><div class="card-title">Select Tenant</div></div><div style="display:flex;gap:8px;flex-wrap:wrap" id="portal-tenant-tabs"></div></div>
+        <div id="portal-tenant-view">
+          <div class="grid2" style="margin-bottom:14px">
+            <div class="card"><div class="card-header"><div class="card-title">📄 Lease Details</div><span class="badge badge-green" id="ptl-lease-status">Active</span></div><div style="display:flex;flex-direction:column;gap:9px"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text3)">Property</span><strong id="ptl-property"></strong></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text3)">Country</span><span id="ptl-country" style="color:var(--text2)"></span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text3)">Monthly Rent</span><span id="ptl-rent" style="font-family:'DM Mono',monospace;color:var(--accent2)"></span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text3)">Lease Period</span><span id="ptl-period" style="color:var(--text2)"></span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text3)">Days Remaining</span><strong id="ptl-days"></strong></div></div><div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn" style="width:100%;justify-content:center" onclick="showToast('PDF export coming soon','info')">⬇ Download Lease PDF</button></div></div>
+            <div class="card"><div class="card-header"><div class="card-title">💳 Payment History</div></div><div id="ptl-payment-list" style="margin-bottom:12px"></div><div style="display:flex;flex-direction:column;gap:8px"><button class="btn btn-primary" style="justify-content:center" onclick="openPortalPayment()">+ Record Payment</button><button class="btn btn-success" style="justify-content:center" onclick="showToast('Receipt sent to tenant','success')">📧 Send Receipt</button></div></div>
+          </div>
+          <div class="grid2">
+            <div class="card"><div class="card-header"><div class="card-title">🔧 Maintenance</div><button class="btn btn-sm" onclick="openModal('modal-maintenance')">+ New</button></div><div id="ptl-maintenance-list"></div></div>
+            <div class="card" style="display:flex;flex-direction:column"><div class="card-header"><div class="card-title">✉ Messages</div></div><div id="ptl-messages" style="flex:1;overflow-y:auto;max-height:200px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div><div style="display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--border)"><input class="form-input" id="ptl-msg-input" placeholder="Message tenant…" onkeydown="if(event.key==='Enter')sendPortalMessage()" style="flex:1"><button class="btn btn-primary" style="padding:9px 13px" onclick="sendPortalMessage()">Send</button></div></div>
+          </div>
+        </div>
+        <div id="portal-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">🏠</div><div style="font-size:15px;font-weight:500;color:var(--text2);margin-bottom:6px">No tenants yet</div><div style="font-size:13px">Add tenants in the Tenants section first.</div></div>
+      </div>
+    </div>
+    <!-- SETTINGS -->
+    <div id="panel-settings" class="panel">
+      <div class="topbar"><div class="topbar-left"><div class="hamburger" onclick="openSidebar()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div><div class="page-title">Settings</div></div><div class="topbar-right"><button class="btn btn-primary" onclick="saveSettings()">Save Changes</button></div></div>
+      <div class="content">
+        <div class="grid2">
+          <div class="card"><div class="card-header"><div class="card-title">👤 Profile</div></div><div class="form-row"><div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="set-first"></div><div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="set-last"></div></div><div class="form-group"><label class="form-label">Email</label><input class="form-input" id="set-email" type="email"></div><div class="form-group"><label class="form-label">Company / Trading Name</label><input class="form-input" id="set-company" placeholder="Optional"></div></div>
+          <div class="card"><div class="card-header"><div class="card-title">⚙️ Preferences</div></div><div class="form-group"><label class="form-label">Base Currency</label><select class="form-input" id="set-currency"><option value="USD">USD — US Dollar ($)</option><option value="EUR">EUR — Euro (€)</option><option value="UAH">UAH — Ukrainian Hryvnia (₴)</option><option value="GBP">GBP — British Pound (£)</option></select></div><div class="form-group"><label class="form-label">Date Format</label><select class="form-input" id="set-dateformat"><option value="MM/DD/YYYY">MM/DD/YYYY</option><option value="DD/MM/YYYY">DD/MM/YYYY</option><option value="YYYY-MM-DD">YYYY-MM-DD</option></select></div><div class="form-group"><label class="form-label">Timezone</label><select class="form-input" id="set-timezone"><option>UTC</option><option>America/New_York</option><option>America/Los_Angeles</option><option>Europe/Lisbon</option><option>Europe/Kyiv</option><option>Asia/Jerusalem</option></select></div></div>
+          <div class="card"><div class="card-header"><div class="card-title">🔒 Change Password</div></div><div class="form-group"><label class="form-label">Current Password</label><input class="form-input" type="password" id="set-old-pass"></div><div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="set-new-pass"></div><div class="form-group"><label class="form-label">Confirm New Password</label><input class="form-input" type="password" id="set-confirm-pass"></div><button class="btn btn-primary" onclick="changePassword()" style="width:100%;justify-content:center">Update Password</button></div>
+          <div class="card"><div class="card-header"><div class="card-title">🌍 Countries in Portfolio</div></div><div id="set-countries-list" style="margin-bottom:14px"></div><div style="display:flex;gap:8px"><input class="form-input" id="set-new-country" placeholder="e.g. United States" style="flex:1"><button class="btn btn-primary" onclick="addCountry()">Add</button></div></div>
+          <div class="card" style="grid-column:1/-1"><div class="card-header"><div class="card-title">🤖 AI Assistant — Anthropic API Key</div></div><div style="font-size:12px;color:var(--text3);line-height:1.55;margin-bottom:12px">The AI Assistant calls Anthropic directly from your browser. Paste your own API key below — it's stored locally in this browser only and never leaves your device except to call Anthropic. Get a key at <a href="https://console.anthropic.com/" target="_blank" style="color:var(--accent2)">console.anthropic.com</a>.<br><strong style="color:var(--amber)">⚠ Anyone with access to this browser can read your key. Don't use a shared computer.</strong></div><div class="form-group" style="margin-bottom:8px"><label class="form-label">API Key</label><input class="form-input" type="password" id="set-ai-key" placeholder="sk-ant-..." autocomplete="off"></div><button class="btn btn-primary" onclick="saveAiKey()">Save Key</button> <button class="btn btn-danger" onclick="clearAiKey()">Remove Key</button> <span id="set-ai-key-status" style="font-size:12px;color:var(--text3);margin-left:8px"></span></div>
+        </div>
+        <div class="card" style="margin-top:4px;border-color:rgba(240,78,106,0.2)"><div class="card-header"><div class="card-title" style="color:var(--red)">⚠ Danger Zone</div></div><div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><div><div style="font-weight:500">Clear all data</div><div style="color:var(--text3);font-size:12px;margin-top:2px">Permanently delete all properties, tenants, payments and records</div></div><button class="btn btn-danger" onclick="confirmClearAll()">Clear All Data</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- MODALS -->
+<!-- Add Property -->
+<div class="modal-backdrop" id="modal-property"><div class="modal modal-lg"><div class="modal-title">Add Property <button class="modal-close" onclick="closeModal('modal-property')">×</button></div><div class="form-row"><div class="form-group" style="grid-column:1/-1"><label class="form-label">Property Name</label><input class="form-input" id="prop-name" placeholder="e.g. Miami Beach Studio"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Type</label><select class="form-input" id="prop-type"><option>Apartment</option><option>House</option><option>Airbnb</option><option>Commercial</option><option>Land</option></select></div><div class="form-group"><label class="form-label">Country</label><select class="form-input" id="prop-country-select"></select></div></div><div class="form-group"><label class="form-label">Street Address</label><div class="addr-wrapper"><input class="form-input" id="prop-addr-input" placeholder="Start typing…" autocomplete="off" oninput="addrAutocomplete(this,'prop-addr-suggestions')" onblur="hideAddrSuggestions('prop-addr-suggestions')"><div class="addr-suggestions" id="prop-addr-suggestions" style="display:none"></div></div></div><div class="form-row"><div class="form-group"><label class="form-label">City</label><input class="form-input" id="prop-city" placeholder="City"></div><div class="form-group"><label class="form-label">Zip / Postal Code</label><input class="form-input" id="prop-zip" placeholder="00000"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Monthly Rent</label><input class="form-input" type="number" id="prop-rent" placeholder="0"></div><div class="form-group"><label class="form-label">Currency</label><select class="form-input" id="prop-currency"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="UAH">UAH (₴)</option><option value="GBP">GBP (£)</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Size (m²)</label><input class="form-input" type="number" id="prop-size" placeholder="0"></div><div class="form-group"><label class="form-label">Rooms</label><input class="form-input" type="number" id="prop-rooms" placeholder="0"></div></div><div class="form-group"><label class="form-label">Status</label><select class="form-input" id="prop-status"><option>Vacant</option><option>Rented</option><option>Partial</option></select></div><div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="prop-notes" placeholder="Optional notes…"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-property')">Cancel</button><button class="btn btn-primary" onclick="submitProperty()">Add Property</button></div></div></div>
+<!-- Add Tenant -->
+<div class="modal-backdrop" id="modal-tenant"><div class="modal modal-lg"><div class="modal-title">Add Tenant <button class="modal-close" onclick="closeModal('modal-tenant')">×</button></div><div class="form-row"><div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="ten-first" placeholder="First"></div><div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="ten-last" placeholder="Last"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="ten-email" placeholder="tenant@email.com"></div><div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="ten-phone" placeholder="+1 555 000 0000"></div></div><div class="form-group"><label class="form-label">Property</label><select class="form-input" id="ten-prop"></select></div><div class="form-row"><div class="form-group"><label class="form-label">Lease Start</label><input class="form-input" type="date" id="ten-start"></div><div class="form-group"><label class="form-label">Lease End</label><input class="form-input" type="date" id="ten-end"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Monthly Rent</label><input class="form-input" type="number" id="ten-rent" placeholder="0"></div><div class="form-group"><label class="form-label">Currency</label><select class="form-input" id="ten-currency"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="UAH">UAH (₴)</option><option value="GBP">GBP (£)</option></select></div></div><div class="form-group"><label class="form-label">ID / Passport Number</label><input class="form-input" id="ten-id" placeholder="Stored locally only"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-tenant')">Cancel</button><button class="btn btn-primary" onclick="submitTenant()">Add Tenant</button></div></div></div>
+<!-- Record Payment -->
+<div class="modal-backdrop" id="modal-payment"><div class="modal"><div class="modal-title">Record Payment <button class="modal-close" onclick="closeModal('modal-payment')">×</button></div><div class="form-group"><label class="form-label">Tenant</label><select class="form-input" id="new-pay-tenant" onchange="autoFillPaymentProp()"></select></div><div class="form-group"><label class="form-label">Property</label><input class="form-input" id="new-pay-property" placeholder="Auto-filled or type manually"></div><div class="form-row"><div class="form-group"><label class="form-label">Amount</label><input class="form-input" type="number" id="pay-amount-input" placeholder="0"></div><div class="form-group"><label class="form-label">Currency</label><select class="form-input" id="new-pay-currency"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="UAH">UAH (₴)</option><option value="GBP">GBP (£)</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Due Date</label><input class="form-input" type="date" id="pay-due-input"></div><div class="form-group"><label class="form-label">Paid Date</label><input class="form-input" type="date" id="pay-date-input"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Method</label><select class="form-input" id="new-pay-method"><option value="">—</option><option>Wire Transfer</option><option>Bit</option><option>Cash</option><option>Credit Card</option><option>Check</option><option>Crypto</option></select></div><div class="form-group"><label class="form-label">Status</label><select class="form-input" id="new-pay-status"><option>Pending</option><option>Paid</option><option>Overdue</option></select></div></div><div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="pay-notes" placeholder="Optional"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-payment')">Cancel</button><button class="btn btn-primary" onclick="submitPayment()">Record Payment</button></div></div></div>
+<!-- Edit Payment -->
+<div class="modal-backdrop" id="modal-edit-payment"><div class="modal"><div class="modal-title">Update Payment <button class="modal-close" onclick="closeModal('modal-edit-payment')">×</button></div><input type="hidden" id="edit-pay-idx"><div class="form-group"><label class="form-label">Tenant</label><input class="form-input" id="edit-pay-tenant" readonly style="opacity:.6"></div><div class="form-row"><div class="form-group"><label class="form-label">Amount</label><input class="form-input" type="number" id="edit-pay-amount"></div><div class="form-group"><label class="form-label">Currency</label><select class="form-input" id="edit-pay-currency"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="UAH">UAH (₴)</option><option value="GBP">GBP (£)</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Due Date</label><input class="form-input" type="date" id="edit-pay-due"></div><div class="form-group"><label class="form-label">Paid Date</label><input class="form-input" type="date" id="edit-pay-paid"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Method</label><select class="form-input" id="edit-pay-method"><option value="">—</option><option>Wire Transfer</option><option>Bit</option><option>Cash</option><option>Credit Card</option><option>Check</option><option>Crypto</option></select></div><div class="form-group"><label class="form-label">Status</label><select class="form-input" id="edit-pay-status"><option>Pending</option><option>Paid</option><option>Overdue</option></select></div></div><div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="edit-pay-notes"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-edit-payment')">Cancel</button><button class="btn btn-success" onclick="markPaymentPaid()">✓ Mark as Paid</button><button class="btn btn-primary" onclick="savePaymentEdit()">Save</button></div></div></div>
+<!-- Add Expense -->
+<div class="modal-backdrop" id="modal-expense"><div class="modal"><div class="modal-title">Add Expense <button class="modal-close" onclick="closeModal('modal-expense')">×</button></div><div class="form-row"><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="exp-date"></div><div class="form-group"><label class="form-label">Category</label><select class="form-input" id="exp-cat"><option>Maintenance</option><option>Insurance</option><option>Property Tax</option><option>Management Fee</option><option>Utilities</option><option>HOA</option><option>Legal</option><option>Other</option></select></div></div><div class="form-group"><label class="form-label">Property</label><select class="form-input" id="exp-prop"></select></div><div class="form-group"><label class="form-label">Description</label><input class="form-input" id="exp-desc" placeholder="e.g. Plumber repair visit"></div><div class="form-row"><div class="form-group"><label class="form-label">Amount</label><input class="form-input" type="number" id="exp-amount" placeholder="0"></div><div class="form-group"><label class="form-label">Currency</label><select class="form-input" id="exp-currency"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="UAH">UAH (₴)</option><option value="GBP">GBP (£)</option></select></div></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-expense')">Cancel</button><button class="btn btn-primary" onclick="submitExpense()">Add Expense</button></div></div></div>
+<!-- New Maintenance -->
+<div class="modal-backdrop" id="modal-maintenance"><div class="modal"><div class="modal-title">New Maintenance Request <button class="modal-close" onclick="closeModal('modal-maintenance')">×</button></div><div class="form-group"><label class="form-label">Property</label><select class="form-input" id="maint-prop"></select></div><div class="form-group"><label class="form-label">Issue Description</label><input class="form-input" id="maint-desc" placeholder="Describe the problem…"></div><div class="form-row"><div class="form-group"><label class="form-label">Priority</label><select class="form-input" id="maint-priority"><option>Urgent</option><option>Medium</option><option>Low</option></select></div><div class="form-group"><label class="form-label">Reported By</label><select class="form-input" id="maint-reporter"><option>Tenant</option><option>Owner</option><option>Inspector</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Est. Cost ($)</label><input class="form-input" type="number" id="maint-cost" placeholder="0"></div><div class="form-group"><label class="form-label">Status</label><select class="form-input" id="maint-status"><option>Open</option><option>In Progress</option><option>Scheduled</option><option>Resolved</option></select></div></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-maintenance')">Cancel</button><button class="btn btn-primary" onclick="submitMaintenance()">Submit</button></div></div></div>
+<!-- Edit Maintenance -->
+<div class="modal-backdrop" id="modal-edit-maintenance"><div class="modal"><div class="modal-title">Update Maintenance <button class="modal-close" onclick="closeModal('modal-edit-maintenance')">×</button></div><input type="hidden" id="edit-maint-idx"><div class="form-group"><label class="form-label">Property</label><input class="form-input" id="edit-maint-prop" readonly style="opacity:.6"></div><div class="form-group"><label class="form-label">Issue</label><input class="form-input" id="edit-maint-desc"></div><div class="form-row"><div class="form-group"><label class="form-label">Priority</label><select class="form-input" id="edit-maint-priority"><option>Urgent</option><option>Medium</option><option>Low</option></select></div><div class="form-group"><label class="form-label">Status</label><select class="form-input" id="edit-maint-status"><option>Open</option><option>In Progress</option><option>Scheduled</option><option>Resolved</option></select></div></div><div class="form-group"><label class="form-label">Actual Cost ($)</label><input class="form-input" type="number" id="edit-maint-cost" placeholder="0"></div><div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="edit-maint-notes" placeholder="Contractor, resolution details…"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-edit-maintenance')">Cancel</button><button class="btn btn-primary" onclick="saveMaintEdit()">Save</button></div></div></div>
+<!-- Add Event -->
+<div class="modal-backdrop" id="modal-event"><div class="modal"><div class="modal-title">Add Event <button class="modal-close" onclick="closeModal('modal-event')">×</button></div><div class="form-group"><label class="form-label">Title</label><input class="form-input" id="evt-title" placeholder="e.g. Lease expiry — Miami"></div><div class="form-row"><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="evt-date"></div><div class="form-group"><label class="form-label">Type</label><select class="form-input" id="evt-type"><option>Lease</option><option>Payment</option><option>Inspection</option><option>Maintenance</option><option>Meeting</option><option>Other</option></select></div></div><div class="form-group"><label class="form-label">Property (optional)</label><select class="form-input" id="evt-prop"><option value="">— All Properties —</option></select></div><div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="evt-notes" placeholder="Optional"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-event')">Cancel</button><button class="btn btn-primary" onclick="submitEvent()">Add Event</button></div></div></div>
+<!-- Add Document -->
+<div class="modal-backdrop" id="modal-document"><div class="modal"><div class="modal-title">Add Document <button class="modal-close" onclick="closeModal('modal-document')">×</button></div><div class="form-group"><label class="form-label">Document Name</label><input class="form-input" id="doc-name" placeholder="e.g. Lease Agreement — Miami 2026"></div><div class="form-group"><label class="form-label">Property</label><select class="form-input" id="doc-prop"><option value="">General / All Properties</option></select></div><div class="form-row"><div class="form-group"><label class="form-label">Type</label><select class="form-input" id="doc-type"><option>Lease Agreement</option><option>Insurance</option><option>Inspection Report</option><option>Title Deed</option><option>Tax Document</option><option>Invoice</option><option>ID / Passport</option><option>Other</option></select></div><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="doc-date"></div></div><div class="form-group"><label class="form-label">Notes / URL</label><input class="form-input" id="doc-notes" placeholder="Link to Drive, Dropbox, or description…"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-document')">Cancel</button><button class="btn btn-primary" onclick="submitDocument()">Add Document</button></div></div></div>
+<!-- Send Message -->
+<div class="modal-backdrop" id="modal-send-message"><div class="modal"><div class="modal-title">Send Message <button class="modal-close" onclick="closeModal('modal-send-message')">×</button></div><div class="form-group"><label class="form-label">To</label><select class="form-input" id="msg-to-tenant"></select></div><div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="msg-subject" placeholder="e.g. Rent reminder"></div><div class="form-group"><label class="form-label">Message</label><textarea class="form-input" id="msg-body" rows="5" style="resize:vertical" placeholder="Type your message…"></textarea></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-send-message')">Cancel</button><button class="btn btn-primary" onclick="submitSendMessage()">Send</button></div></div></div>
+<!-- Delete Confirm -->
+<div class="modal-backdrop" id="modal-delete-confirm"><div class="modal modal-sm" style="text-align:center"><div style="width:50px;height:50px;background:rgba(240,78,106,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><svg width="22" height="22" fill="none" stroke="var(--red)" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></div><div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px">Remove Property?</div><div style="font-size:13px;color:var(--text2);margin-bottom:22px;line-height:1.5"><strong id="delete-prop-name" style="color:var(--text)"></strong><br><span style="font-size:11px;color:var(--text3)">This cannot be undone.</span></div><div style="display:flex;gap:10px;justify-content:center"><button class="btn" style="min-width:100px" onclick="closeModal('modal-delete-confirm')">Cancel</button><button class="btn btn-danger" style="min-width:100px" id="delete-confirm-btn">Remove</button></div></div></div>
+<script>
+'use strict';
+const LS={get:function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del:function(k){try{localStorage.removeItem(k);}catch(e){}}};
+const USERS_KEY='pm_users',SESSION_KEY='pm_session',AI_KEY_LS='pm_ai_key';
+function getUsers(){return LS.get(USERS_KEY,[]);}
+function saveUsers(u){LS.set(USERS_KEY,u);}
+var currentUser=null,TODAY=new Date();
+const PANELS=['dashboard','ai','properties','tenants','payments','expenses','reports','maintenance','calendar','documents','portal','settings'];
+
+function doLogin(){
+  var e=document.getElementById('login-email').value.trim().toLowerCase(),p=document.getElementById('login-password').value;
+  if(!e||!p){showAuthError('Please fill in all fields.');return;}
+  var u=getUsers().find(function(x){return x.email.toLowerCase()===e&&x.password===p;});
+  if(!u){showAuthError('Invalid email or password.');return;}
+  currentUser=u;LS.set(SESSION_KEY,{id:u.id,email:u.email});bootApp();
+}
+function doRegister(){
+  var f=document.getElementById('reg-first').value.trim(),l=document.getElementById('reg-last').value.trim(),e=document.getElementById('reg-email').value.trim().toLowerCase(),p=document.getElementById('reg-password').value,c=document.getElementById('reg-confirm').value,cur=document.getElementById('reg-currency').value;
+  if(!f||!l||!e||!p){showAuthError('Please fill in all fields.');return;}
+  if(p.length<8){showAuthError('Password must be at least 8 characters.');return;}
+  if(p!==c){showAuthError('Passwords do not match.');return;}
+  var users=getUsers();
+  if(users.find(function(x){return x.email.toLowerCase()===e;})){showAuthError('Email already registered.');return;}
+  var nu={id:'u_'+Date.now(),email:e,password:p,first:f,last:l,currency:cur,dateFormat:'DD/MM/YYYY',timezone:'UTC',company:'',countries:['United States','Ukraine','Portugal']};
+  users.push(nu);saveUsers(users);currentUser=nu;LS.set(SESSION_KEY,{id:nu.id,email:nu.email});showToast('Welcome, '+f+'!','success');bootApp();
+}
+function doLogout(){
+  LS.del(SESSION_KEY);currentUser=null;
+  document.getElementById('app-shell').style.display='none';document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('login-email').value='';document.getElementById('login-password').value='';switchAuthTab('login');
+}
+function showAuthError(msg){var el=document.getElementById('auth-error');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},4000);}
+function switchAuthTab(t){
+  document.getElementById('tab-login').className='auth-tab'+(t==='login'?' active':'');
+  document.getElementById('tab-register').className='auth-tab'+(t==='register'?' active':'');
+  document.getElementById('form-login').style.display=t==='login'?'block':'none';
+  document.getElementById('form-register').style.display=t==='register'?'block':'none';
+  document.getElementById('auth-error').style.display='none';
+}
+function bootApp(){
+  document.getElementById('auth-screen').style.display='none';
+  var shell=document.getElementById('app-shell');shell.style.display='flex';shell.style.flexDirection='row';
+  var ini=(currentUser.first[0]||'')+(currentUser.last[0]||'');
+  document.getElementById('user-avatar-sidebar').textContent=ini.toUpperCase();
+  document.getElementById('user-name-sidebar').textContent=currentUser.first+' '+currentUser.last;
+  populateCountryFilters();populatePropertySelects();populateTenantSelects();
+  buildCalendar(TODAY.getFullYear(),TODAY.getMonth());
+  renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDocuments();renderDashboard();loadSettings();
+  PANELS.forEach(function(p){var el=document.getElementById('panel-'+p);if(el)el.style.display='none';});
+  document.getElementById('panel-dashboard').style.display='flex';
+  document.getElementById('dash-sub').textContent=TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+window.addEventListener('DOMContentLoaded',function(){
+  var s=LS.get(SESSION_KEY,null);
+  if(s){var u=getUsers().find(function(x){return x.id===s.id&&x.email===s.email;});if(u){currentUser=u;bootApp();return;}}
+  document.getElementById('auth-screen').style.display='flex';
+});
+function nav(id,el){
+  PANELS.forEach(function(p){var e=document.getElementById('panel-'+p);if(e)e.style.display='none';});
+  var t=document.getElementById('panel-'+id);if(t)t.style.display='flex';
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var b=document.getElementById('nav-'+id);if(b)b.classList.add('active');else if(el)el.classList.add('active');
+  closeSidebar();
+  if(id==='portal')initPortal();if(id==='settings')loadSettings();if(id==='calendar')buildCalendar(calYear,calMonth);
+}
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
+function uKey(k){return'pm_'+(currentUser?currentUser.id:'g')+'_'+k;}
+function getProps(){return LS.get(uKey('properties'),[]);}function getTenants(){return LS.get(uKey('tenants'),[]);}
+function getPayments(){return LS.get(uKey('payments'),[]);}function getExpenses(){return LS.get(uKey('expenses'),[]);}
+function getMaint(){return LS.get(uKey('maintenance'),[]);}function getEvents(){return LS.get(uKey('events'),[]);}
+function getDocs(){return LS.get(uKey('documents'),[]);}function getMsgs(){return LS.get(uKey('messages'),{});}
+function saveProps(d){LS.set(uKey('properties'),d);}function saveTenants(d){LS.set(uKey('tenants'),d);}
+function savePayments(d){LS.set(uKey('payments'),d);}function saveExpenses(d){LS.set(uKey('expenses'),d);}
+function saveMaint(d){LS.set(uKey('maintenance'),d);}function saveEvents(d){LS.set(uKey('events'),d);}
+function saveDocs(d){LS.set(uKey('documents'),d);}function saveMsgs(d){LS.set(uKey('messages'),d);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function currSymbol(c){return{USD:'$',EUR:'€',UAH:'₴',GBP:'£'}[c]||c;}
+function fmtMoney(a,c){return currSymbol(c||'USD')+Number(a||0).toLocaleString();}
+function fmtDate(d){if(!d)return'—';var p=d.split('-');return(p[2]||'??')+'/'+(p[1]||'??')+'/'+(p[0]||'????').slice(2);}
+function todayStr(){return TODAY.toISOString().split('T')[0];}
+function showToast(msg,type){
+  var c=document.getElementById('toast-container'),t=document.createElement('div');t.className='toast '+(type||'info');
+  var dot=document.createElement('div');dot.className='toast-dot';var txt=document.createElement('span');txt.textContent=msg;
+  t.appendChild(dot);t.appendChild(txt);c.appendChild(t);
+  setTimeout(function(){t.style.animation='toastOut .25s ease forwards';setTimeout(function(){t.remove();},260);},3200);
+}
+function openModal(id){
+  var el=document.getElementById(id);if(!el)return;el.classList.add('open');
+  var ds=todayStr();el.querySelectorAll('input[type=date]').forEach(function(i){if(!i.value)i.value=ds;});
+}
+function closeModal(id){var el=document.getElementById(id);if(el)el.classList.remove('open');}
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.modal-backdrop').forEach(function(bd){bd.addEventListener('click',function(e){if(e.target===bd)bd.classList.remove('open');});});
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(function(bd){bd.classList.remove('open');});});
+var COUNTRY_FLAG={'United States':'🇺🇸','Ukraine':'🇺🇦','Portugal':'🇵🇹','United Kingdom':'🇬🇧','Germany':'🇩🇪','France':'🇫🇷','Spain':'🇪🇸','Israel':'🇮🇱','Italy':'🇮🇹','Netherlands':'🇳🇱','Poland':'🇵🇱','Romania':'🇷🇴','Hungary':'🇭🇺','Canada':'🇨🇦','Australia':'🇦🇺','Japan':'🇯🇵','UAE':'🇦🇪','Brazil':'🇧🇷','Mexico':'🇲🇽','Cyprus':'🇨🇾','Greece':'🇬🇷'};
+function countryFlag(c){return COUNTRY_FLAG[c]||'🌍';}
+var TYPE_BADGE={Apartment:'badge-blue',House:'badge-green',Airbnb:'badge-amber',Commercial:'badge-purple',Land:'badge-teal'};
+var STATUS_BADGE={Rented:'badge-green',Vacant:'badge-red',Overdue:'badge-red',Partial:'badge-amber',Paid:'badge-green',Pending:'badge-amber','In Progress':'badge-amber',Open:'badge-red',Scheduled:'badge-blue',Resolved:'badge-green','Due Soon':'badge-amber'};
+function populateCountryFilters(){
+  var countries=(currentUser&&currentUser.countries)||['United States','Ukraine','Portugal'];
+  var f=document.getElementById('filter-country');
+  if(f)f.innerHTML='<option value="">All Countries</option>'+countries.map(function(c){return'<option>'+esc(c)+'</option>';}).join('');
+  var ps=document.getElementById('prop-country-select');
+  if(ps)ps.innerHTML=countries.map(function(c){return'<option>'+esc(c)+'</option>';}).join('');
+}
+function populatePropertySelects(){
+  var props=getProps();
+  var opts='<option value="">— None —</option>'+props.map(function(p){return'<option value="'+esc(p.name)+'">'+esc(p.name)+'</option>';}).join('');
+  ['ten-prop','exp-prop','maint-prop','evt-prop','doc-prop'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML=opts;});
+}
+function populateTenantSelects(){
+  var t=getTenants();
+  var opts=t.map(function(x){return'<option value="'+esc(x.first+' '+x.last)+'">'+esc(x.first+' '+x.last)+'</option>';}).join('')||'<option>No tenants yet</option>';
+  ['new-pay-tenant','msg-to-tenant'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML=opts;});
+}
+function updateCountryFilter(){
+  var props=getProps(),countries=[...new Set(props.map(function(p){return p.country;}).filter(Boolean))];
+  var sel=document.getElementById('filter-country');if(!sel)return;
+  var cur=sel.value;
+  sel.innerHTML='<option value="">All Countries</option>'+countries.map(function(c){return'<option'+(c===cur?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+}
+var PROPS_PER_PAGE=10,propsPage=0;
+function getFilteredProps(){
+  var p=getProps(),tf=(document.getElementById('filter-type')||{}).value||'',sf=(document.getElementById('filter-status')||{}).value||'',cf=(document.getElementById('filter-country')||{}).value||'';
+  return p.filter(function(x){return(!tf||x.type===tf)&&(!sf||x.status===sf)&&(!cf||x.country===cf);});
+}
+function renderProperties(){
+  var filtered=getFilteredProps(),total=filtered.length,tp=Math.max(1,Math.ceil(total/PROPS_PER_PAGE));
+  if(propsPage>=tp)propsPage=tp-1;
+  var start=propsPage*PROPS_PER_PAGE,page=filtered.slice(start,start+PROPS_PER_PAGE),allProps=getProps();
+  var title=document.getElementById('props-count-title');if(title)title.textContent='('+allProps.length+')';
+  var badge=document.getElementById('nav-props-badge');if(badge)badge.textContent=allProps.length;
+  var tbody=document.getElementById('props-tbody');
+  if(tbody)tbody.innerHTML=page.length?page.map(function(p){
+    var idx=allProps.indexOf(p),tb=TYPE_BADGE[p.type]||'badge-blue',sb=STATUS_BADGE[p.status]||'badge-blue';
+    return'<tr><td class="primary">'+countryFlag(p.country)+' '+esc(p.name)+(p.notes?'<div style="font-size:11px;color:var(--text3)">'+esc(p.notes)+'</div>':'')+'</td><td>'+esc(p.city||p.address||'—')+'</td><td>'+esc(p.country||'—')+'</td><td><span class="badge '+tb+'">'+esc(p.type)+'</span></td><td>'+esc(p.tenant||'—')+'</td><td style="font-family:\'DM Mono\',monospace">'+fmtMoney(p.rent,p.currency)+'</td><td><span class="badge '+sb+'">'+esc(p.status)+'</span></td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="editProperty('+idx+')">Edit</button> <button class="btn btn-sm btn-danger" onclick="confirmDeleteProperty('+idx+')">✕</button></td></tr>';
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No properties found. Add your first property.</td></tr>';
+  var info=document.getElementById('props-page-info');if(info)info.textContent='Showing '+(total?start+1:0)+'–'+Math.min(start+PROPS_PER_PAGE,total)+' of '+total;
+  var prev=document.getElementById('props-prev'),next=document.getElementById('props-next');
+  if(prev)prev.disabled=propsPage===0;if(next)next.disabled=propsPage>=tp-1;
+  updateCountryFilter();
+}
+function propsPrevPage(){if(propsPage>0){propsPage--;renderProperties();}}
+function propsNextPage(){if((propsPage+1)*PROPS_PER_PAGE<getFilteredProps().length){propsPage++;renderProperties();}}
+var pendingDeleteIdx=null;
+function confirmDeleteProperty(idx){
+  pendingDeleteIdx=idx;var p=getProps()[idx];
+  var el=document.getElementById('delete-prop-name');if(el)el.textContent=p?p.name:'this property';
+  document.getElementById('delete-confirm-btn').onclick=executeDeleteProperty;openModal('modal-delete-confirm');
+}
+function executeDeleteProperty(){
+  var p=getProps(),name=p[pendingDeleteIdx]?p[pendingDeleteIdx].name:'';
+  p.splice(pendingDeleteIdx,1);saveProps(p);pendingDeleteIdx=null;
+  propsPage=Math.max(0,Math.min(propsPage,Math.ceil(getFilteredProps().length/PROPS_PER_PAGE)-1));
+  populatePropertySelects();renderProperties();renderDashboard();closeModal('modal-delete-confirm');showToast(name+' removed','info');
+}
+function editProperty(idx){var p=getProps()[idx];if(!p)return;showToast('Edit coming soon — remove and re-add for now','info');}
+function submitProperty(){
+  var name=document.getElementById('prop-name').value.trim();
+  if(!name){showToast('Please enter a property name','error');return;}
+  var props=getProps();
+  props.unshift({name:name,address:document.getElementById('prop-addr-input').value.trim(),city:document.getElementById('prop-city').value.trim(),zip:document.getElementById('prop-zip').value.trim(),country:document.getElementById('prop-country-select').value,type:document.getElementById('prop-type').value,rent:Number(document.getElementById('prop-rent').value)||0,currency:document.getElementById('prop-currency').value,size:Number(document.getElementById('prop-size').value)||0,rooms:Number(document.getElementById('prop-rooms').value)||0,status:document.getElementById('prop-status').value,notes:document.getElementById('prop-notes').value.trim(),tenant:'',addedAt:todayStr()});
+  saveProps(props);propsPage=0;populatePropertySelects();renderProperties();renderDashboard();closeModal('modal-property');showToast('"'+name+'" added','success');
+  ['prop-name','prop-addr-input','prop-city','prop-zip','prop-rent','prop-size','prop-rooms','prop-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+}
+function renderTenants(){
+  var tenants=getTenants(),sf=(document.getElementById('filter-tenant-status')||{}).value||'',filtered=sf?tenants.filter(function(t){return t.payment===sf;}):tenants;
+  var COLORS=['linear-gradient(135deg,#3D7EF5,#7C5CFC)','linear-gradient(135deg,#2ECC8F,#1a8f60)','linear-gradient(135deg,#F5A623,#c4891a)','linear-gradient(135deg,#F04E6A,#a32d2d)','linear-gradient(135deg,#9B72F5,#6d48e5)'];
+  var tbody=document.getElementById('tenants-tbody');
+  if(tbody)tbody.innerHTML=filtered.length?filtered.map(function(t,i){
+    var ini=(t.first[0]||'')+(t.last[0]||''),pb=STATUS_BADGE[t.payment]||'badge-blue';
+    var prop=getProps().find(function(p){return p.name===t.property;}),country=prop?prop.country:'—';
+    return'<tr><td class="primary"><div style="display:flex;align-items:center;gap:8px"><div style="width:26px;height:26px;border-radius:50%;background:'+COLORS[i%COLORS.length]+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">'+esc(ini.toUpperCase())+'</div>'+esc(t.first+' '+t.last)+'</div></td><td>'+esc(t.property||'—')+'</td><td>'+countryFlag(country)+' '+esc(country)+'</td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(t.leaseStart)+'</td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(t.leaseEnd)+'</td><td style="font-family:\'DM Mono\',monospace">'+fmtMoney(t.rent,t.currency)+'</td><td><span class="badge '+pb+'">'+esc(t.payment||'—')+'</span></td><td><button class="btn btn-sm" onclick="showToast(\'Reminder sent to '+esc(t.first)+'\',\'success\')">Remind</button></td></tr>';
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No tenants found.</td></tr>';
+  var badge=document.getElementById('nav-tenants-badge');if(badge)badge.textContent=tenants.length;
+  var info=document.getElementById('tenants-page-info');if(info)info.textContent='Showing '+filtered.length+' of '+tenants.length+' tenants';
+}
+function submitTenant(){
+  var first=document.getElementById('ten-first').value.trim(),last=document.getElementById('ten-last').value.trim();
+  if(!first||!last){showToast('Please enter tenant name','error');return;}
+  var prop=document.getElementById('ten-prop').value,tenants=getTenants();
+  tenants.unshift({first:first,last:last,email:document.getElementById('ten-email').value.trim(),phone:document.getElementById('ten-phone').value.trim(),property:prop,leaseStart:document.getElementById('ten-start').value,leaseEnd:document.getElementById('ten-end').value,rent:Number(document.getElementById('ten-rent').value)||0,currency:document.getElementById('ten-currency').value,idNumber:document.getElementById('ten-id').value.trim(),payment:'Pending',addedAt:todayStr()});
+  saveTenants(tenants);
+  if(prop){var props=getProps(),p=props.find(function(x){return x.name===prop;});if(p){p.tenant=first+' '+last;p.status='Rented';saveProps(props);}}
+  populateTenantSelects();renderTenants();renderProperties();renderDashboard();closeModal('modal-tenant');showToast(first+' '+last+' added','success');
+  ['ten-first','ten-last','ten-email','ten-phone','ten-rent','ten-id'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+}
+var PAY_STATUS_BADGE={Paid:'badge-green',Pending:'badge-amber',Overdue:'badge-red'};
+function renderPayments(){
+  var payments=getPayments(),sf=(document.getElementById('pay-filter-status')||{}).value||'',filtered=sf?payments.filter(function(p){return p.status===sf;}):payments;
+  var collected=0,outstanding=0,outCount=0;
+  payments.forEach(function(p){if(p.status==='Paid')collected+=Number(p.amount||0);else{outstanding+=Number(p.amount||0);outCount++;}});
+  var total=collected+outstanding,pct=total>0?Math.round(collected/total*100):0;
+  var g=function(id){return document.getElementById(id);};
+  if(g('pay-collected'))g('pay-collected').textContent=fmtMoney(collected,'USD');
+  if(g('pay-collected-pct'))g('pay-collected-pct').textContent=pct+'% of total';
+  if(g('pay-outstanding'))g('pay-outstanding').textContent=fmtMoney(outstanding,'USD');
+  if(g('pay-outstanding-count'))g('pay-outstanding-count').textContent=outCount+' payment'+(outCount!==1?'s':'');
+  if(g('pay-total-count'))g('pay-total-count').textContent=payments.length;
+  var badge=document.getElementById('nav-pay-badge');if(badge){badge.textContent=outCount;badge.style.display=outCount>0?'':'none';}
+  var tbody=document.getElementById('pay-tbody');
+  if(tbody)tbody.innerHTML=filtered.length?filtered.map(function(p){
+    var idx=payments.indexOf(p),badge=PAY_STATUS_BADGE[p.status]||'badge-blue',dueCls=p.status==='Overdue'?'color:var(--red)':'color:var(--text2)';
+    return'<tr><td class="primary">'+esc(p.tenant)+'</td><td>'+esc(p.property||'—')+'</td><td style="font-family:\'DM Mono\',monospace">'+fmtMoney(p.amount,p.currency)+'</td><td><span class="badge badge-teal">'+esc(p.currency||'USD')+'</span></td><td style="'+dueCls+';font-family:\'DM Mono\',monospace">'+fmtDate(p.dueDate)+'</td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(p.paidDate)+'</td><td>'+esc(p.method||'—')+'</td><td><span class="badge '+badge+'">'+esc(p.status)+'</span></td><td style="white-space:nowrap">'+(p.status!=='Paid'?'<button class="btn btn-sm btn-success" onclick="quickMarkPaid('+idx+')">✓ Paid</button> ':'')+'<button class="btn btn-sm" onclick="openEditPayment('+idx+')">Edit</button></td></tr>';
+  }).join(''):'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">No payment records.</td></tr>';
+  var info=document.getElementById('pay-page-info');if(info)info.textContent='Showing '+filtered.length+' of '+payments.length+' records';
+}
+function quickMarkPaid(idx){var p=getPayments();p[idx].status='Paid';p[idx].paidDate=todayStr();if(!p[idx].method)p[idx].method='Wire Transfer';savePayments(p);renderPayments();renderDashboard();showToast(p[idx].tenant+' — marked Paid','success');}
+function openEditPayment(idx){
+  var p=getPayments()[idx],g=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
+  g('edit-pay-idx',idx);g('edit-pay-tenant',p.tenant);g('edit-pay-amount',p.amount);g('edit-pay-due',p.dueDate);g('edit-pay-paid',p.paidDate||'');g('edit-pay-notes',p.notes||'');
+  ['edit-pay-method','edit-pay-status','edit-pay-currency'].forEach(function(id){var el=document.getElementById(id);if(!el)return;var k=id.replace('edit-pay-','');Array.from(el.options).forEach(function(o){o.selected=o.value===p[k];});});
+  openModal('modal-edit-payment');
+}
+function savePaymentEdit(){
+  var idx=parseInt(document.getElementById('edit-pay-idx').value,10),amt=document.getElementById('edit-pay-amount').value;
+  if(!amt||amt<=0){showToast('Invalid amount','error');return;}
+  var p=getPayments();p[idx]=Object.assign({},p[idx],{amount:Number(amt),dueDate:document.getElementById('edit-pay-due').value,paidDate:document.getElementById('edit-pay-paid').value,method:document.getElementById('edit-pay-method').value,status:document.getElementById('edit-pay-status').value,currency:document.getElementById('edit-pay-currency').value,notes:document.getElementById('edit-pay-notes').value});
+  savePayments(p);renderPayments();renderDashboard();closeModal('modal-edit-payment');showToast('Payment updated','success');
+}
+function markPaymentPaid(){if(!document.getElementById('edit-pay-paid').value)document.getElementById('edit-pay-paid').value=todayStr();document.getElementById('edit-pay-status').value='Paid';savePaymentEdit();}
+function autoFillPaymentProp(){
+  var sel=document.getElementById('new-pay-tenant'),name=sel?sel.value:'';
+  var t=getTenants().find(function(x){return x.first+' '+x.last===name;});
+  var propEl=document.getElementById('new-pay-property');if(propEl&&t)propEl.value=t.property||'';
+}
+function submitPayment(){
+  var tenant=document.getElementById('new-pay-tenant').value,prop=document.getElementById('new-pay-property').value.trim(),amt=document.getElementById('pay-amount-input').value;
+  if(!amt||amt<=0){showToast('Please enter a valid amount','error');return;}
+  if(!tenant){showToast('Please select a tenant','error');return;}
+  var p=getPayments();
+  p.unshift({tenant:tenant,property:prop||tenant,amount:Number(amt),currency:document.getElementById('new-pay-currency').value,dueDate:document.getElementById('pay-due-input').value,paidDate:document.getElementById('pay-date-input').value,method:document.getElementById('new-pay-method').value,status:document.getElementById('new-pay-status').value,notes:document.getElementById('pay-notes').value});
+  savePayments(p);renderPayments();renderDashboard();closeModal('modal-payment');showToast('Payment recorded for '+tenant,'success');
+  ['pay-amount-input','pay-due-input','pay-date-input','pay-notes','new-pay-property'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+}
+function renderExpenses(){
+  var expenses=getExpenses(),cf=(document.getElementById('exp-filter-cat')||{}).value||'',filtered=cf?expenses.filter(function(e){return e.category===cf;}):expenses;
+  var totalExp=0,monthExp=0,m=TODAY.getMonth(),y=TODAY.getFullYear();
+  expenses.forEach(function(e){var v=Number(e.amount||0);totalExp+=v;var d=new Date(e.date||'');if(d.getMonth()===m&&d.getFullYear()===y)monthExp+=v;});
+  var payments=getPayments(),totalRev=0;payments.forEach(function(p){if(p.status==='Paid')totalRev+=Number(p.amount||0);});
+  var g=function(id){return document.getElementById(id);};
+  if(g('exp-total'))g('exp-total').textContent=fmtMoney(totalExp,'USD');
+  if(g('exp-month'))g('exp-month').textContent=fmtMoney(monthExp,'USD');
+  if(g('exp-net')){var net=totalRev-totalExp;g('exp-net').textContent=fmtMoney(Math.abs(net),'USD');g('exp-net').style.color=net>=0?'var(--green)':'var(--red)';}
+  var tbody=document.getElementById('exp-tbody');
+  if(tbody)tbody.innerHTML=filtered.length?filtered.map(function(e){var idx=expenses.indexOf(e);return'<tr><td style="font-family:\'DM Mono\',monospace;color:var(--text2)">'+fmtDate(e.date)+'</td><td class="primary">'+esc(e.property||'General')+'</td><td><span class="badge badge-purple">'+esc(e.category)+'</span></td><td style="color:var(--text2)">'+esc(e.description||'—')+'</td><td style="font-family:\'DM Mono\',monospace;color:var(--red)">'+fmtMoney(e.amount,e.currency)+'</td><td><span class="badge badge-teal">'+esc(e.currency||'USD')+'</span></td><td><button class="btn btn-sm btn-danger" onclick="deleteExpense('+idx+')">✕</button></td></tr>';}).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">No expenses recorded.</td></tr>';
+  var info=document.getElementById('exp-page-info');if(info)info.textContent='Showing '+filtered.length+' of '+expenses.length+' expenses';
+}
+function submitExpense(){
+  var amt=document.getElementById('exp-amount').value;if(!amt||amt<=0){showToast('Please enter a valid amount','error');return;}
+  var expenses=getExpenses();
+  expenses.unshift({date:document.getElementById('exp-date').value,category:document.getElementById('exp-cat').value,property:document.getElementById('exp-prop').value,description:document.getElementById('exp-desc').value.trim(),amount:Number(amt),currency:document.getElementById('exp-currency').value});
+  saveExpenses(expenses);renderExpenses();renderDashboard();closeModal('modal-expense');showToast('Expense recorded','success');
+  ['exp-amount','exp-desc'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+}
+function deleteExpense(idx){var e=getExpenses();e.splice(idx,1);saveExpenses(e);renderExpenses();renderDashboard();showToast('Expense removed','info');}
+function renderMaintenance(){
+  var maint=getMaint(),sf=(document.getElementById('maint-filter')||{}).value||'',filtered=sf?maint.filter(function(m){return m.status===sf;}):maint;
+  var PB={Urgent:'badge-red',Medium:'badge-amber',Low:'badge-green'},openC=0,progC=0,resC=0;
+  maint.forEach(function(m){if(m.status==='Open')openC++;else if(m.status==='In Progress')progC++;else if(m.status==='Resolved'){var d=new Date(m.date||'');if(d.getMonth()===TODAY.getMonth()&&d.getFullYear()===TODAY.getFullYear())resC++;}});
+  var g=function(id){return document.getElementById(id);};
+  if(g('maint-open-count'))g('maint-open-count').textContent=openC;if(g('maint-progress-count'))g('maint-progress-count').textContent=progC;if(g('maint-resolved-count'))g('maint-resolved-count').textContent=resC;
+  var badge=document.getElementById('nav-maint-badge'),urg=openC+progC;if(badge){badge.textContent=urg;badge.style.display=urg>0?'':'none';}
+  var tbody=document.getElementById('maint-tbody');
+  if(tbody)tbody.innerHTML=filtered.length?filtered.map(function(m){
+    var idx=maint.indexOf(m),pb=PB[m.priority]||'badge-blue',sb=STATUS_BADGE[m.status]||'badge-blue';
+    var prop=getProps().find(function(p){return p.name===m.property;}),country=prop?prop.country:'—';
+    return'<tr><td class="primary">'+esc(m.property||'—')+'</td><td>'+countryFlag(country)+' '+esc(country)+'</td><td style="color:var(--text2)">'+esc(m.issue||'—')+'</td><td><span class="badge '+pb+'">'+esc(m.priority)+'</span></td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(m.date)+'</td><td style="font-family:\'DM Mono\',monospace">'+(m.cost?'$'+Number(m.cost).toLocaleString():'—')+'</td><td><span class="badge '+sb+'">'+esc(m.status)+'</span></td><td><button class="btn btn-sm" onclick="openEditMaint('+idx+')">Update</button></td></tr>';
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No maintenance requests.</td></tr>';
+}
+function submitMaintenance(){
+  var desc=document.getElementById('maint-desc').value.trim();if(!desc){showToast('Please describe the issue','error');return;}
+  var maint=getMaint();maint.unshift({property:document.getElementById('maint-prop').value,issue:desc,priority:document.getElementById('maint-priority').value,reportedBy:document.getElementById('maint-reporter').value,cost:Number(document.getElementById('maint-cost').value)||0,status:document.getElementById('maint-status').value,date:todayStr(),notes:''});
+  saveMaint(maint);renderMaintenance();closeModal('modal-maintenance');showToast('Maintenance request submitted','success');
+  ['maint-desc','maint-cost'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+}
+function openEditMaint(idx){
+  var m=getMaint()[idx];document.getElementById('edit-maint-idx').value=idx;document.getElementById('edit-maint-prop').value=m.property||'';document.getElementById('edit-maint-desc').value=m.issue||'';document.getElementById('edit-maint-cost').value=m.cost||'';document.getElementById('edit-maint-notes').value=m.notes||'';
+  ['edit-maint-priority','edit-maint-status'].forEach(function(id){var el=document.getElementById(id);if(!el)return;var k=id.replace('edit-maint-','');Array.from(el.options).forEach(function(o){o.selected=o.value===m[k];});});
+  openModal('modal-edit-maintenance');
+}
+function saveMaintEdit(){
+  var idx=parseInt(document.getElementById('edit-maint-idx').value,10),maint=getMaint();
+  maint[idx]=Object.assign({},maint[idx],{issue:document.getElementById('edit-maint-desc').value,priority:document.getElementById('edit-maint-priority').value,status:document.getElementById('edit-maint-status').value,cost:Number(document.getElementById('edit-maint-cost').value)||0,notes:document.getElementById('edit-maint-notes').value});
+  saveMaint(maint);renderMaintenance();closeModal('modal-edit-maintenance');showToast('Maintenance updated','success');
+}
+var calYear=TODAY.getFullYear(),calMonth=TODAY.getMonth();
+var MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function buildCalendar(y,m){
+  calYear=y;calMonth=m;var label=document.getElementById('cal-month-label');if(label)label.textContent=MONTH_NAMES[m]+' '+y;
+  var firstDay=new Date(y,m,1).getDay(),daysInMonth=new Date(y,m+1,0).getDate(),events=getEvents();
+  var eventDays=new Set(events.filter(function(e){if(!e.date)return false;var d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m;}).map(function(e){return new Date(e.date).getDate();}));
+  var grid=document.getElementById('cal-grid');if(!grid)return;
+  var DAYS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  var html=DAYS.map(function(d){return'<div class="cal-hdr">'+d+'</div>';}).join('');
+  for(var i=0;i<firstDay;i++)html+='<div class="cal-day empty"></div>';
+  for(var d=1;d<=daysInMonth;d++){var isT=d===TODAY.getDate()&&m===TODAY.getMonth()&&y===TODAY.getFullYear(),hasE=eventDays.has(d);html+='<div class="cal-day'+(isT?' today':'')+(hasE?' has-event':'')+'">'+d+'</div>';}
+  grid.innerHTML=html;renderEventsList();
+}
+function renderEventsList(){
+  var events=getEvents(),list=document.getElementById('cal-events-list');if(!list)return;
+  if(!events.length){list.innerHTML='<div style="font-size:12px;color:var(--text3);padding:12px 0">No events. Add your first event.</div>';return;}
+  var sorted=[].concat(events).sort(function(a,b){return(a.date||'')>(b.date||'')?1:-1;});
+  var TC={Lease:'var(--accent2)',Payment:'var(--green)',Inspection:'var(--amber)',Maintenance:'var(--red)',Meeting:'var(--purple)',Other:'var(--text2)'};
+  list.innerHTML=sorted.map(function(e){
+    var idx=events.indexOf(e),color=TC[e.type]||'var(--text2)';
+    return'<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)"><div style="width:3px;background:'+color+';border-radius:2px;align-self:stretch;flex-shrink:0;min-height:36px"></div><div style="flex:1"><div style="font-size:13px;font-weight:500">'+esc(e.title)+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">'+fmtDate(e.date)+(e.property?' · '+esc(e.property):'')+'</div>'+(e.notes?'<div style="font-size:11px;color:var(--text3)">'+esc(e.notes)+'</div>':'')+'</div><button class="btn btn-sm btn-danger" onclick="deleteEvent('+idx+')" style="flex-shrink:0">✕</button></div>';
+  }).join('');
+}
+function calPrev(){if(calMonth===0){calMonth=11;calYear--;}else calMonth--;buildCalendar(calYear,calMonth);}
+function calNext(){if(calMonth===11){calMonth=0;calYear++;}else calMonth++;buildCalendar(calYear,calMonth);}
+function submitEvent(){
+  var title=document.getElementById('evt-title').value.trim(),date=document.getElementById('evt-date').value;
+  if(!title||!date){showToast('Please enter title and date','error');return;}
+  var events=getEvents();events.push({title:title,date:date,type:document.getElementById('evt-type').value,property:document.getElementById('evt-prop').value,notes:document.getElementById('evt-notes').value.trim()});
+  saveEvents(events);buildCalendar(calYear,calMonth);closeModal('modal-event');showToast('Event added','success');
+  ['evt-title','evt-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+}
+function deleteEvent(idx){var e=getEvents();e.splice(idx,1);saveEvents(e);buildCalendar(calYear,calMonth);showToast('Event removed','info');}
+function renderDocuments(){
+  var docs=getDocs(),tbody=document.getElementById('docs-tbody');if(!tbody)return;
+  tbody.innerHTML=docs.length?docs.map(function(d,i){
+    return'<tr><td class="primary">'+esc(d.name)+'</td><td>'+esc(d.property||'General')+'</td><td><span class="badge badge-purple">'+esc(d.type)+'</span></td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(d.date)+'</td><td style="color:var(--text2)">'+(d.notes&&d.notes.startsWith('http')?'<a href="'+esc(d.notes)+'" target="_blank" style="color:var(--accent2)">Open link</a>':esc(d.notes||'—'))+'</td><td><button class="btn btn-sm btn-danger" onclick="deleteDoc('+i+')">✕</button></td></tr>';
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">No documents yet. Add lease agreements, insurance, title deeds, and more.</td></tr>';
+}
+function submitDocument(){
+  var name=document.getElementById('doc-name').value.trim();if(!name){showToast('Please enter document name','error');return;}
+  var docs=getDocs();docs.unshift({name:name,property:document.getElementById('doc-prop').value,type:document.getElementById('doc-type').value,date:document.getElementById('doc-date').value,notes:document.getElementById('doc-notes').value.trim()});
+  saveDocs(docs);renderDocuments();closeModal('modal-document');showToast('"'+name+'" added','success');
+  ['doc-name','doc-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+}
+function deleteDoc(idx){var d=getDocs();d.splice(idx,1);saveDocs(d);renderDocuments();showToast('Document removed','info');}
+function showReportDetail(type){
+  var box=document.getElementById('report-detail'),title=document.getElementById('report-detail-title'),body=document.getElementById('report-detail-body');
+  if(!box||!title||!body)return;box.style.display='block';
+  var props=getProps(),payments=getPayments(),expenses=getExpenses(),tenants=getTenants();
+  if(type==='revenue'){
+    title.textContent='Revenue Report';var totalRev=0;payments.filter(function(p){return p.status==='Paid';}).forEach(function(p){totalRev+=Number(p.amount||0);});
+    var byProp={};payments.filter(function(p){return p.status==='Paid';}).forEach(function(p){byProp[p.property]=(byProp[p.property]||0)+Number(p.amount||0);});
+    body.innerHTML='<div style="margin-bottom:16px"><div style="font-size:28px;font-weight:700;font-family:\'Syne\',sans-serif">'+fmtMoney(totalRev,'USD')+'</div><div style="font-size:12px;color:var(--text3)">Total collected (all time, paid payments)</div></div>'+(Object.keys(byProp).length?'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">By Property</div>'+Object.keys(byProp).map(function(k){return'<div class="fin-row"><span>'+esc(k)+'</span><strong style="font-family:\'DM Mono\',monospace;color:var(--green)">'+fmtMoney(byProp[k],'USD')+'</strong></div>';}).join(''):'<div style="color:var(--text3);font-size:13px">No paid payments recorded yet.</div>');
+  } else if(type==='pnl'){
+    title.textContent='P&L Statement';var totalRev=0,totalExp=0;
+    payments.filter(function(p){return p.status==='Paid';}).forEach(function(p){totalRev+=Number(p.amount||0);});
+    expenses.forEach(function(e){totalExp+=Number(e.amount||0);});var net=totalRev-totalExp;
+    body.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px"><div class="metric metric-green"><div class="metric-label">Revenue</div><div class="metric-value" style="font-size:20px">'+fmtMoney(totalRev,'USD')+'</div></div><div class="metric metric-red"><div class="metric-label">Expenses</div><div class="metric-value" style="font-size:20px">'+fmtMoney(totalExp,'USD')+'</div></div><div class="metric '+(net>=0?'metric-green':'metric-red')+'"><div class="metric-label">Net Income</div><div class="metric-value" style="font-size:20px;color:'+(net>=0?'var(--green)':'var(--red)')+'">'+fmtMoney(Math.abs(net),'USD')+'</div></div></div><div style="font-size:13px;color:var(--text2)">Net margin: '+(totalRev>0?Math.round(net/totalRev*100):0)+'% &nbsp;·&nbsp; Expense ratio: '+(totalRev>0?Math.round(totalExp/totalRev*100):0)+'%</div>';
+  } else if(type==='occupancy'){
+    title.textContent='Occupancy Report';var total=props.length,rented=props.filter(function(p){return p.status!=='Vacant';}).length,pct=total>0?Math.round(rented/total*100):0;
+    var byCountry={};props.forEach(function(p){if(!byCountry[p.country])byCountry[p.country]={total:0,rented:0};byCountry[p.country].total++;if(p.status!=='Vacant')byCountry[p.country].rented++;});
+    body.innerHTML='<div style="margin-bottom:20px"><div style="font-size:36px;font-weight:700;font-family:\'Syne\',sans-serif">'+pct+'%</div><div style="font-size:12px;color:var(--text3)">'+rented+' of '+total+' properties occupied</div></div>'+Object.keys(byCountry).map(function(c){var cc=byCountry[c],cp=cc.total>0?Math.round(cc.rented/cc.total*100):0;return'<div class="prog-row"><div class="prog-label"><span>'+countryFlag(c)+' '+esc(c)+'</span><span>'+cc.rented+'/'+cc.total+' · '+cp+'%</span></div><div class="prog-track"><div class="prog-fill" style="width:'+cp+'%;background:var(--accent)"></div></div></div>';}).join('');
+  } else if(type==='tax'){
+    title.textContent='Tax Summary';var byCountry={};
+    payments.filter(function(p){return p.status==='Paid';}).forEach(function(p){var prop=props.find(function(x){return x.name===p.property;}),country=prop?prop.country:'Unknown';byCountry[country]=(byCountry[country]||0)+Number(p.amount||0);});
+    body.innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:16px">Rental income by country — all paid payments (basis for tax reporting)</div>'+(Object.keys(byCountry).length?Object.keys(byCountry).map(function(c){return'<div class="fin-row"><span>'+countryFlag(c)+' '+esc(c)+'</span><strong style="font-family:\'DM Mono\',monospace">'+fmtMoney(byCountry[c],'USD')+'</strong></div>';}).join('')+'<div style="margin-top:16px;font-size:12px;color:var(--text3)">⚠️ Consult a local tax advisor for reporting requirements in each jurisdiction.</div>':'<div style="color:var(--text3);font-size:13px">No data yet. Record paid payments to see tax summary.</div>');
+  }
+  box.scrollIntoView({behavior:'smooth'});
+}
+function renderDashboard(){
+  var props=getProps(),payments=getPayments(),tenants=getTenants(),totalProps=props.length;
+  var rented=props.filter(function(p){return p.status!=='Vacant';}).length,occupancy=totalProps>0?Math.round(rented/totalProps*100):0;
+  var revenue=0;payments.filter(function(p){return p.status==='Paid';}).forEach(function(p){revenue+=Number(p.amount||0);});
+  var overdue=payments.filter(function(p){return p.status==='Overdue';}),overdueAmt=overdue.reduce(function(s,p){return s+Number(p.amount||0);},0);
+  var g=function(id){return document.getElementById(id);};
+  if(g('dm-props'))g('dm-props').textContent=totalProps;
+  if(g('dm-props-sub')){var bt={};props.forEach(function(p){bt[p.type]=(bt[p.type]||0)+1;});g('dm-props-sub').textContent=Object.keys(bt).map(function(t){return bt[t]+' '+t.toLowerCase()+'s';}).join(' · ')||'No properties';}
+  if(g('dm-revenue'))g('dm-revenue').textContent=fmtMoney(revenue,'USD');
+  if(g('dm-revenue-sub'))g('dm-revenue-sub').textContent='Total collected (paid)';
+  if(g('dm-occupancy'))g('dm-occupancy').textContent=occupancy+'%';
+  if(g('dm-occ-sub'))g('dm-occ-sub').textContent=rented+' rented · '+(totalProps-rented)+' vacant';
+  if(g('dm-overdue'))g('dm-overdue').textContent=overdue.length;
+  if(g('dm-overdue-sub'))g('dm-overdue-sub').innerHTML='<span class="metric-down">'+fmtMoney(overdueAmt,'USD')+'</span> outstanding';
+  var propsList=document.getElementById('dash-props-list');
+  if(propsList){var recent=props.slice(0,4);propsList.innerHTML=recent.length?recent.map(function(p){var sb=STATUS_BADGE[p.status]||'badge-blue';return'<div class="row-item"><div class="row-icon" style="background:rgba(61,126,245,.1)">'+countryFlag(p.country)+'</div><div class="row-info"><div class="row-name">'+esc(p.name)+'</div><div class="row-sub">'+esc(p.address||p.city||p.country||'—')+'</div></div><div class="row-right"><span class="badge '+sb+'">'+esc(p.status)+'</span><div class="row-amount" style="margin-top:3px">'+fmtMoney(p.rent,p.currency)+'</div></div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);padding:12px 0">No properties yet.</div>';}
+  var payList=document.getElementById('dash-pay-list');
+  if(payList){var pending=payments.filter(function(p){return p.status!=='Paid';}).slice(0,4);payList.innerHTML=pending.length?pending.map(function(p){var sb=STATUS_BADGE[p.status]||'badge-amber';return'<div class="row-item"><div class="row-info"><div class="row-name">'+esc(p.tenant)+'</div><div class="row-sub">Due: '+fmtDate(p.dueDate)+'</div></div><div class="row-right"><span class="badge '+sb+'">'+esc(p.status)+'</span><div class="row-amount '+(p.status==='Overdue'?'style="color:var(--red)"':'')+'" style="margin-top:3px">'+fmtMoney(p.amount,p.currency)+'</div></div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);padding:12px 0">No pending payments.</div>';}
+  var countriesDiv=document.getElementById('dash-countries');
+  if(countriesDiv){var byC={};props.forEach(function(p){byC[p.country]=(byC[p.country]||0)+1;});countriesDiv.innerHTML=Object.keys(byC).length?Object.keys(byC).map(function(c){var pct=Math.round(byC[c]/totalProps*100);return'<div class="prog-row"><div class="prog-label"><span>'+countryFlag(c)+' '+esc(c)+'</span><span style="color:var(--accent2)">'+byC[c]+' propert'+(byC[c]===1?'y':'ies')+'</span></div><div class="prog-track"><div class="prog-fill" style="width:'+pct+'%;background:var(--accent)"></div></div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3)">No properties added yet.</div>';}
+  buildDashBars();renderDashEvents();
+}
+function buildDashBars(){
+  var container=document.getElementById('dash-bars');if(!container)return;var payments=getPayments(),months=[],labels=[];
+  for(var i=5;i>=0;i--){var d=new Date(TODAY.getFullYear(),TODAY.getMonth()-i,1);months.push({y:d.getFullYear(),m:d.getMonth()});labels.push(d.toLocaleString('default',{month:'short'}));}
+  var data=months.map(function(mo){return payments.filter(function(p){if(p.status!=='Paid'||!p.paidDate)return false;var d=new Date(p.paidDate);return d.getFullYear()===mo.y&&d.getMonth()===mo.m;}).reduce(function(s,p){return s+Number(p.amount||0);},0);});
+  var maxVal=Math.max.apply(null,data.concat([1]));container.innerHTML='';
+  data.forEach(function(v,i){var col=document.createElement('div');col.className='bar-col';var fill=document.createElement('div');fill.className='bar-fill';fill.style.height=Math.round((v/maxVal)*64)+'px';fill.style.background=i===5?'var(--accent)':'rgba(61,126,245,.3)';var lbl=document.createElement('div');lbl.className='bar-lbl';lbl.textContent=labels[i];col.appendChild(fill);col.appendChild(lbl);container.appendChild(col);});
+}
+function renderDashEvents(){
+  var events=getEvents(),box=document.getElementById('dash-events');if(!box)return;
+  var tenants=getTenants();
+  var autoEvents=tenants.filter(function(t){return t.leaseEnd;}).map(function(t){var dl=Math.ceil((new Date(t.leaseEnd)-TODAY)/86400000);return{title:'Lease expires — '+(t.property||t.first+' '+t.last),date:t.leaseEnd,type:'Lease',daysLeft:dl,auto:true};}).filter(function(e){return e.daysLeft>0&&e.daysLeft<=90;});
+  var combined=events.map(function(e){return Object.assign({},e,{daysLeft:Math.ceil((new Date(e.date)-TODAY)/86400000)});}).concat(autoEvents).filter(function(e){return e.daysLeft>=0;}).sort(function(a,b){return a.daysLeft-b.daysLeft;}).slice(0,4);
+  var TC={Lease:'var(--red)',Payment:'var(--green)',Inspection:'var(--amber)',Maintenance:'var(--red)',Meeting:'var(--purple)',Other:'var(--text2)'};
+  box.innerHTML=combined.length?combined.map(function(e){var color=TC[e.type]||'var(--text2)',badge=e.daysLeft===0?'Today':e.daysLeft+' day'+(e.daysLeft!==1?'s':'');return'<div class="row-item"><div style="width:38px;height:38px;background:rgba(61,126,245,.08);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:'+color+';line-height:1">'+new Date(e.date).getDate()+'</span><span style="font-size:9px;color:'+color+'">'+new Date(e.date).toLocaleString('default',{month:'short'}).toUpperCase()+'</span></div><div class="row-info"><div class="row-name">'+esc(e.title)+'</div></div><span class="badge badge-amber">'+badge+'</span></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);padding:12px 0">No upcoming events.</div>';
+}
+var selectedPortalTenant=null;
+function initPortal(){
+  var tenants=getTenants();
+  if(!tenants.length){document.getElementById('portal-tenant-view').style.display='none';document.getElementById('portal-empty').style.display='block';return;}
+  document.getElementById('portal-tenant-view').style.display='block';document.getElementById('portal-empty').style.display='none';
+  var tabs=document.getElementById('portal-tenant-tabs');
+  if(tabs)tabs.innerHTML=tenants.map(function(t,i){return'<button class="btn" id="ptl-tab-'+i+'" onclick="selectPortalTenant('+i+')">'+esc(t.first+' '+t.last)+'</button>';}).join('');
+  var ms=document.getElementById('msg-to-tenant');
+  if(ms)ms.innerHTML=tenants.map(function(t,i){return'<option value="'+i+'">'+esc(t.first+' '+t.last)+'</option>';}).join('');
+  selectPortalTenant(0);
+}
+function selectPortalTenant(idx){
+  selectedPortalTenant=idx;var t=getTenants()[idx];if(!t)return;
+  getTenants().forEach(function(_,i){var tab=document.getElementById('ptl-tab-'+i);if(tab)tab.className='btn'+(i===idx?' btn-primary':'');});
+  var name=t.first+' '+t.last,s=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v||'—';};
+  var prop=getProps().find(function(p){return p.name===t.property;});
+  s('ptl-property',t.property);s('ptl-country',prop?(countryFlag(prop.country)+' '+prop.country):'—');s('ptl-rent',fmtMoney(t.rent,t.currency));s('ptl-period',(t.leaseStart||'?')+' → '+(t.leaseEnd||'?'));
+  var daysEl=document.getElementById('ptl-days');
+  if(t.leaseEnd&&daysEl){var days=Math.ceil((new Date(t.leaseEnd)-TODAY)/86400000);daysEl.textContent=days>0?days+' days':(days===0?'Expires today':'Expired');daysEl.style.color=days>60?'var(--green)':days>0?'var(--amber)':'var(--red)';}
+  var sb=document.getElementById('ptl-lease-status');if(sb){sb.textContent=t.payment==='Overdue'?'Overdue':'Active';sb.className='badge '+(t.payment==='Overdue'?'badge-red':'badge-green');}
+  var payList=document.getElementById('ptl-payment-list');
+  if(payList){var tPays=getPayments().filter(function(p){return p.tenant===name;}).slice(0,4);payList.innerHTML=tPays.length?tPays.map(function(p){var badge=PAY_STATUS_BADGE[p.status]||'badge-blue';return'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:500">'+fmtMoney(p.amount,p.currency)+'</div><div style="font-size:11px;color:var(--text3)">Due '+fmtDate(p.dueDate)+'</div></div><span class="badge '+badge+'">'+p.status+'</span></div>';}).join(''):'<div style="font-size:12px;color:var(--text3)">No payment records.</div>';}
+  var maintList=document.getElementById('ptl-maintenance-list');
+  if(maintList){var tMaint=getMaint().filter(function(m){return m.property===t.property;});maintList.innerHTML=tMaint.length?tMaint.map(function(m){var sb=STATUS_BADGE[m.status]||'badge-blue',pb=STATUS_BADGE[m.priority]||'badge-blue';return'<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:500">'+esc(m.issue)+'</span><span class="badge '+sb+'">'+esc(m.status)+'</span></div><div style="font-size:11px;color:var(--text3)">'+fmtDate(m.date)+'</div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">No maintenance requests.</div>';}
+  renderPortalMessages(name);
+}
+function renderPortalMessages(tenantName){
+  var allMsgs=getMsgs(),msgs=(allMsgs[uKey(tenantName)]||[]),box=document.getElementById('ptl-messages');if(!box)return;
+  box.innerHTML=msgs.length?msgs.map(function(m){var isO=m.from==='owner';return'<div style="display:flex;flex-direction:column;align-items:'+(isO?'flex-end':'flex-start')+';gap:2px"><div style="font-size:10px;color:var(--text3)">'+(isO?'You':esc(tenantName))+' · '+m.time+'</div><div style="max-width:88%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;'+(isO?'background:linear-gradient(135deg,#3D7EF5,#7C5CFC);color:#fff;border-radius:10px 10px 2px 10px':'background:var(--bg3);border:1px solid var(--border);border-radius:10px 10px 10px 2px')+'">'+esc(m.text)+'</div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0">No messages yet.</div>';
+  box.scrollTop=box.scrollHeight;
+}
+function sendPortalMessage(){
+  if(selectedPortalTenant===null)return;var t=getTenants()[selectedPortalTenant];if(!t)return;
+  var name=t.first+' '+t.last,inp=document.getElementById('ptl-msg-input'),text=inp&&inp.value.trim();if(!text)return;
+  var allMsgs=getMsgs(),k=uKey(name);if(!allMsgs[k])allMsgs[k]=[];
+  allMsgs[k].push({from:'owner',text:text,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
+  saveMsgs(allMsgs);if(inp)inp.value='';renderPortalMessages(name);
+}
+function openPortalPayment(){
+  if(selectedPortalTenant===null)return;var t=getTenants()[selectedPortalTenant];if(!t)return;
+  openModal('modal-payment');
+  setTimeout(function(){var sel=document.getElementById('new-pay-tenant');if(sel)Array.from(sel.options).forEach(function(o){o.selected=o.text===(t.first+' '+t.last);});var pEl=document.getElementById('new-pay-property');if(pEl)pEl.value=t.property||'';},50);
+}
+function submitSendMessage(){
+  var selEl=document.getElementById('msg-to-tenant'),idx=selEl?parseInt(selEl.value,10):0,body=document.getElementById('msg-body').value.trim(),subject=document.getElementById('msg-subject').value.trim();
+  if(!body){showToast('Please type a message','error');return;}
+  var t=getTenants()[idx];if(!t)return;var name=t.first+' '+t.last,allMsgs=getMsgs(),k=uKey(name);
+  if(!allMsgs[k])allMsgs[k]=[];allMsgs[k].push({from:'owner',text:(subject?'['+subject+'] ':'')+body,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
+  saveMsgs(allMsgs);closeModal('modal-send-message');showToast('Message sent to '+name,'success');
+  ['msg-subject','msg-body'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  if(selectedPortalTenant===idx)renderPortalMessages(name);
+}
+function loadSettings(){
+  if(!currentUser)return;
+  var g=function(id){return document.getElementById(id);};
+  if(g('set-first'))g('set-first').value=currentUser.first||'';if(g('set-last'))g('set-last').value=currentUser.last||'';
+  if(g('set-email'))g('set-email').value=currentUser.email||'';if(g('set-company'))g('set-company').value=currentUser.company||'';
+  if(g('set-currency'))g('set-currency').value=currentUser.currency||'USD';
+  if(g('set-dateformat'))g('set-dateformat').value=currentUser.dateFormat||'DD/MM/YYYY';
+  if(g('set-timezone'))g('set-timezone').value=currentUser.timezone||'UTC';
+  renderCountriesList();
+  var keyStatus=g('set-ai-key-status');if(keyStatus){var k=LS.get(AI_KEY_LS,'');keyStatus.textContent=k?'✓ Key saved ('+k.slice(0,7)+'…'+k.slice(-4)+')':'No key set';keyStatus.style.color=k?'var(--green)':'var(--text3)';}
+  var keyInput=g('set-ai-key');if(keyInput)keyInput.value='';
+}
+function saveAiKey(){
+  var inp=document.getElementById('set-ai-key'),k=inp?inp.value.trim():'';
+  if(!k){showToast('Please paste an API key','error');return;}
+  if(!/^sk-ant-/.test(k)){showToast('That doesn’t look like an Anthropic key (expected to start with sk-ant-)','error');return;}
+  LS.set(AI_KEY_LS,k);loadSettings();showToast('API key saved locally','success');
+}
+function clearAiKey(){LS.del(AI_KEY_LS);loadSettings();showToast('API key removed','info');}
+function saveSettings(){
+  if(!currentUser)return;
+  currentUser.first=document.getElementById('set-first').value.trim()||currentUser.first;currentUser.last=document.getElementById('set-last').value.trim()||currentUser.last;currentUser.email=document.getElementById('set-email').value.trim()||currentUser.email;currentUser.company=document.getElementById('set-company').value.trim();currentUser.currency=document.getElementById('set-currency').value;currentUser.dateFormat=document.getElementById('set-dateformat').value;currentUser.timezone=document.getElementById('set-timezone').value;
+  var users=getUsers(),idx=users.findIndex(function(u){return u.id===currentUser.id;});if(idx>=0)users[idx]=currentUser;else users.push(currentUser);saveUsers(users);
+  document.getElementById('user-name-sidebar').textContent=currentUser.first+' '+currentUser.last;document.getElementById('user-avatar-sidebar').textContent=(currentUser.first[0]+currentUser.last[0]).toUpperCase();
+  LS.set(SESSION_KEY,{id:currentUser.id,email:currentUser.email});showToast('Settings saved','success');
+}
+function changePassword(){
+  var oldP=document.getElementById('set-old-pass').value,newP=document.getElementById('set-new-pass').value,confP=document.getElementById('set-confirm-pass').value;
+  if(!oldP||!newP||!confP){showToast('Please fill all password fields','error');return;}
+  if(oldP!==currentUser.password){showToast('Current password incorrect','error');return;}
+  if(newP.length<8){showToast('Min 8 characters','error');return;}
+  if(newP!==confP){showToast('Passwords do not match','error');return;}
+  currentUser.password=newP;var users=getUsers(),idx=users.findIndex(function(u){return u.id===currentUser.id;});if(idx>=0)users[idx]=currentUser;saveUsers(users);
+  ['set-old-pass','set-new-pass','set-confirm-pass'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});showToast('Password updated','success');
+}
+function renderCountriesList(){
+  var list=document.getElementById('set-countries-list');if(!list||!currentUser)return;var countries=currentUser.countries||[];
+  list.innerHTML=countries.length?countries.map(function(c,i){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+countryFlag(c)+' '+esc(c)+'</span><button class="btn btn-sm btn-danger" onclick="removeCountry('+i+')">✕</button></div>';}).join(''):'<div style="font-size:12px;color:var(--text3)">No countries yet.</div>';
+}
+function addCountry(){
+  var inp=document.getElementById('set-new-country'),val=inp&&inp.value.trim();if(!val)return;
+  if(!currentUser.countries)currentUser.countries=[];if(currentUser.countries.indexOf(val)===-1)currentUser.countries.push(val);
+  saveSettings();renderCountriesList();populateCountryFilters();if(inp)inp.value='';
+}
+function removeCountry(idx){currentUser.countries.splice(idx,1);saveSettings();renderCountriesList();populateCountryFilters();}
+function confirmClearAll(){
+  if(confirm('Are you sure? This will permanently delete ALL your data. This cannot be undone.')){
+    ['properties','tenants','payments','expenses','maintenance','events','documents','messages'].forEach(function(k){LS.del(uKey(k));});
+    renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDocuments();renderDashboard();buildCalendar(calYear,calMonth);showToast('All data cleared','info');
+  }
+}
+var PROP_STREETS=['Rothschild Blvd, Tel Aviv','5th Avenue, New York, NY','Collins Avenue, Miami Beach, FL','Brickell Avenue, Miami, FL','Sunset Boulevard, Los Angeles, CA','Michigan Avenue, Chicago, IL','Congress Avenue, Austin, TX','Khreshchatyk Street, Kyiv','Andriyivskyy Descent, Kyiv','Svobody Avenue, Lviv','Derybasivska Street, Odesa','Avenida da Liberdade, Lisbon','Rua Augusta, Lisbon','Avenida dos Aliados, Porto','Rua de Santa Catarina, Porto','Avenida dos Descobrimentos, Lagos','Peremohy Avenue, Kyiv','Shevchenka Avenue, Lviv','Wilshire Boulevard, Los Angeles, CA','Market Street, San Francisco, CA','Rodeo Drive, Beverly Hills, CA','Broadway, New York, NY','Park Avenue, New York, NY','Las Vegas Boulevard, Las Vegas, NV','Ocean Drive, Miami Beach, FL','Dizengoff Street, Tel Aviv','Ben Yehuda Street, Tel Aviv','Allenby Street, Tel Aviv'];
+var addrTimer=null;
+function addrAutocomplete(input,sugId){
+  var query=input.value.trim(),box=document.getElementById(sugId);if(!box)return;clearTimeout(addrTimer);
+  if(query.length<2){box.style.display='none';return;}
+  var local=PROP_STREETS.filter(function(s){return s.toLowerCase().indexOf(query.toLowerCase())!==-1;}).slice(0,5);
+  showAddressSuggestions(box,local);
+  addrTimer=setTimeout(function(){fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(query)+'&limit=6&accept-language=en').then(function(r){return r.json();}).then(function(results){if(!results||!results.length)return;var labels=results.map(function(r){return r.display_name.split(',').slice(0,3).join(',').trim();});showAddressSuggestions(box,labels);}).catch(function(){});},450);
+}
+function showAddressSuggestions(box,labels){
+  if(!labels.length){box.style.display='none';return;}box.style.display='block';
+  box.innerHTML=labels.map(function(label){var safe=label.replace(/\\/g,'\\\\').replace(/'/g,'\\x27');return'<div class="addr-suggestion" onmousedown="pickAddr(event,\''+box.id+'\',\''+safe+'\')"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg><span>'+esc(label)+'</span></div>';}).join('');
+}
+function pickAddr(e,sugId,label){e.preventDefault();var box=document.getElementById(sugId),inp=box&&box.parentElement&&box.parentElement.querySelector('input');if(inp){inp.value=label;inp.focus();}if(box)box.style.display='none';}
+function hideAddrSuggestions(sugId){setTimeout(function(){var box=document.getElementById(sugId);if(box)box.style.display='none';},200);}
+var MAX_HISTORY=20,conversationHistory=[],aiIsLoading=false;
+function autoResize(el){el.style.height='42px';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+function aiKeydown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}}
+function quickAsk(text){var inp=document.getElementById('ai-input');if(inp.value.trim()){inp.value=text;autoResize(inp);return;}inp.value=text;sendAI();}
+function clearChat(){conversationHistory=[];var c=document.getElementById('ai-messages');if(c)c.innerHTML='<div class="msg ai msg-appear"><div class="msg-label">PropManager AI</div><div class="msg-bubble">Chat cleared. How can I help you?</div></div>';var err=document.getElementById('ai-error');if(err)err.style.display='none';}
+function safeSetText(el,text){var escaped=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');el.innerHTML=escaped.replace(/\n/g,'<br>');}
+async function sendAI(){
+  if(aiIsLoading)return;var inp=document.getElementById('ai-input'),btn=document.getElementById('ai-send-btn'),text=inp.value.trim();if(!text)return;
+  aiIsLoading=true;btn.disabled=true;var container=document.getElementById('ai-messages');
+  var uw=document.createElement('div');uw.className='msg user msg-appear';var ul=document.createElement('div');ul.className='msg-label';ul.textContent='You';var ub=document.createElement('div');ub.className='msg-bubble';safeSetText(ub,text);uw.appendChild(ul);uw.appendChild(ub);container.appendChild(uw);
+  conversationHistory.push({role:'user',content:text});inp.value='';inp.style.height='42px';
+  var tw=document.createElement('div');tw.className='msg ai msg-appear';var tl=document.createElement('div');tl.className='msg-label';tl.textContent='PropManager AI';var tb=document.createElement('div');tb.className='msg-bubble';tb.innerHTML='<div class="typing-dots"><span></span><span></span><span></span></div>';tw.appendChild(tl);tw.appendChild(tb);container.appendChild(tw);container.scrollTop=container.scrollHeight;
+  var err=document.getElementById('ai-error');if(err)err.style.display='none';
+  var apiKey=LS.get(AI_KEY_LS,'');
+  if(!apiKey){tw.remove();if(err){err.innerHTML='No Anthropic API key set. Open <strong>Settings</strong> → <strong>AI Assistant</strong> and paste your key to enable the assistant.';err.style.display='block';}conversationHistory.pop();aiIsLoading=false;btn.disabled=false;return;}
+  var props=getProps(),payments=getPayments();var overdueCount=payments.filter(function(p){return p.status==='Overdue';}).length;
+  var countries=[...new Set(props.map(function(p){return p.country;}).filter(Boolean))];
+  var systemPrompt='You are PropManager AI, an expert real estate portfolio assistant. User: '+(currentUser?currentUser.first+' '+currentUser.last:'')+(currentUser&&currentUser.company?', '+currentUser.company:'')+'.\nPortfolio: '+props.length+' properties in '+(countries.join(', ')||'none')+'. '+getTenants().length+' tenants. '+overdueCount+' overdue payments.\nToday: '+TODAY.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'. Use USD unless specified. Respond in plain text, be professional, concise, and actionable.';
+  try{
+    var response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system:systemPrompt,messages:conversationHistory.slice(-MAX_HISTORY)})});
+    if(!response.ok){var ed=await response.json().catch(function(){return{};});var msg='API error ('+response.status+')';if(response.status===401)msg='Invalid API key — check it in Settings.';else if(response.status===429)msg='Rate limit — please wait a moment.';else if(response.status>=500)msg='Anthropic server error — try again shortly.';else if(ed.error&&ed.error.message)msg=ed.error.message;tw.remove();if(err){err.textContent=msg;err.style.display='block';}conversationHistory.pop();}
+    else{var data=await response.json();var reply=(data.content&&data.content[0]&&data.content[0].text)?data.content[0].text:'No response.';safeSetText(tb,reply);conversationHistory.push({role:'assistant',content:reply});}
+  }catch(e){tw.remove();if(err){err.textContent='Network error — check your connection and that your API key is valid.';err.style.display='block';}conversationHistory.pop();}
+  aiIsLoading=false;btn.disabled=false;container.scrollTop=container.scrollHeight;
+}
+</script>
+</body>
+</html>
