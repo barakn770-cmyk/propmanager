@@ -400,6 +400,10 @@ select.form-input option{background:var(--bg3)}
 <div class="modal-backdrop" id="modal-document"><div class="modal"><div class="modal-title">Add Document <button class="modal-close" onclick="closeModal('modal-document')">×</button></div><div class="form-group"><label class="form-label">Document Name</label><input class="form-input" id="doc-name" placeholder="e.g. Lease Agreement — Miami 2026"></div><div class="form-group"><label class="form-label">Property</label><select class="form-input" id="doc-prop"><option value="">General / All Properties</option></select></div><div class="form-row"><div class="form-group"><label class="form-label">Type</label><select class="form-input" id="doc-type"><option>Lease Agreement</option><option>Insurance</option><option>Inspection Report</option><option>Title Deed</option><option>Tax Document</option><option>Invoice</option><option>ID / Passport</option><option>Other</option></select></div><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="doc-date"></div></div><div class="form-group"><label class="form-label">Notes / URL</label><input class="form-input" id="doc-notes" placeholder="Link to Drive, Dropbox, or description…"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-document')">Cancel</button><button class="btn btn-primary" onclick="submitDocument()">Add Document</button></div></div></div>
 <!-- Send Message -->
 <div class="modal-backdrop" id="modal-send-message"><div class="modal"><div class="modal-title">Send Message <button class="modal-close" onclick="closeModal('modal-send-message')">×</button></div><div class="form-group"><label class="form-label">To</label><select class="form-input" id="msg-to-tenant"></select></div><div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="msg-subject" placeholder="e.g. Rent reminder"></div><div class="form-group"><label class="form-label">Message</label><textarea class="form-input" id="msg-body" rows="5" style="resize:vertical" placeholder="Type your message…"></textarea></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-send-message')">Cancel</button><button class="btn btn-primary" onclick="submitSendMessage()">Send</button></div></div></div>
+<!-- Edit Tenant -->
+<div class="modal-backdrop" id="modal-edit-tenant"><div class="modal modal-lg"><div class="modal-title">Edit Tenant <button class="modal-close" onclick="closeModal('modal-edit-tenant')">×</button></div><input type="hidden" id="edit-ten-id"><div class="form-row"><div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="edit-ten-first"></div><div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="edit-ten-last"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="edit-ten-email"></div><div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="edit-ten-phone"></div></div><div class="form-group"><label class="form-label">Property</label><select class="form-input" id="edit-ten-prop"></select></div><div class="form-row"><div class="form-group"><label class="form-label">Lease Start</label><input class="form-input" type="date" id="edit-ten-start"></div><div class="form-group"><label class="form-label">Lease End</label><input class="form-input" type="date" id="edit-ten-end"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Monthly Rent</label><input class="form-input" type="number" id="edit-ten-rent"></div><div class="form-group"><label class="form-label">Currency</label><select class="form-input" id="edit-ten-currency"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="UAH">UAH (₴)</option><option value="GBP">GBP (£)</option></select></div></div><div class="form-group"><label class="form-label">ID / Passport Number</label><input class="form-input" id="edit-ten-idnum"></div><div class="form-group"><label class="form-label">Payment Status</label><select class="form-input" id="edit-ten-payment"><option>Pending</option><option>Paid</option><option>Overdue</option><option>Due Soon</option></select></div><div class="modal-actions"><button class="btn btn-danger" onclick="deleteTenantFromEdit()" style="margin-right:auto">Delete Tenant</button><button class="btn" onclick="closeModal('modal-edit-tenant')">Cancel</button><button class="btn btn-primary" onclick="saveTenantEdit()">Save</button></div></div></div>
+<!-- Edit Property -->
+<div class="modal-backdrop" id="modal-edit-property"><div class="modal modal-lg"><div class="modal-title">Edit Property <button class="modal-close" onclick="closeModal('modal-edit-property')">×</button></div><input type="hidden" id="edit-prop-idx"><div class="form-row"><div class="form-group" style="grid-column:1/-1"><label class="form-label">Property Name</label><input class="form-input" id="edit-prop-name"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Type</label><select class="form-input" id="edit-prop-type"><option>Apartment</option><option>House</option><option>Airbnb</option><option>Commercial</option><option>Land</option></select></div><div class="form-group"><label class="form-label">Country</label><select class="form-input" id="edit-prop-country"></select></div></div><div class="form-group"><label class="form-label">Street Address</label><input class="form-input" id="edit-prop-address"></div><div class="form-row"><div class="form-group"><label class="form-label">City</label><input class="form-input" id="edit-prop-city"></div><div class="form-group"><label class="form-label">Zip / Postal Code</label><input class="form-input" id="edit-prop-zip"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Monthly Rent</label><input class="form-input" type="number" id="edit-prop-rent"></div><div class="form-group"><label class="form-label">Currency</label><select class="form-input" id="edit-prop-currency"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="UAH">UAH (₴)</option><option value="GBP">GBP (£)</option></select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Size (m²)</label><input class="form-input" type="number" id="edit-prop-size"></div><div class="form-group"><label class="form-label">Rooms</label><input class="form-input" type="number" id="edit-prop-rooms"></div></div><div class="form-group"><label class="form-label">Status</label><select class="form-input" id="edit-prop-status"><option>Vacant</option><option>Rented</option><option>Partial</option></select></div><div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="edit-prop-notes"></div><div class="modal-actions"><button class="btn" onclick="closeModal('modal-edit-property')">Cancel</button><button class="btn btn-primary" onclick="savePropertyEdit()">Save</button></div></div></div>
 <!-- Tenant Documents -->
 <div class="modal-backdrop" id="modal-tenant-docs"><div class="modal modal-lg"><div class="modal-title">📎 Documents — <span id="td-tenant-name" style="color:var(--accent2)"></span> <button class="modal-close" onclick="closeModal('modal-tenant-docs')">×</button></div><input type="hidden" id="td-tenant-id"><div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px"><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Upload New Document</div><div class="form-row" style="margin-bottom:10px"><div class="form-group" style="margin:0"><label class="form-label">Type</label><select class="form-input" id="td-type"><option>ID Document</option><option>Passport</option><option>Lease Agreement</option><option>Insurance</option><option>Bank Statement</option><option>Reference Letter</option><option>Other</option></select></div><div class="form-group" style="margin:0"><label class="form-label">Display Name (optional)</label><input class="form-input" id="td-name" placeholder="e.g. Front of ID"></div></div><div style="display:flex;gap:8px;align-items:center"><input type="file" id="td-file" style="flex:1;font-size:12px;color:var(--text2);background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:6px" accept="image/*,.pdf,.doc,.docx"><button class="btn btn-primary" onclick="uploadTenantDoc()" id="td-upload-btn">Upload</button></div><div style="font-size:11px;color:var(--text3);margin-top:8px">Max 50 MB per file · stored privately in your Supabase account</div></div><div id="td-list" style="max-height:340px;overflow-y:auto"></div></div></div>
 <!-- Delete Confirm -->
@@ -546,7 +550,15 @@ function getMsgs(){return appState.messages;}function saveMsgs(d){appState.messa
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function currSymbol(c){return{USD:'$',EUR:'€',UAH:'₴',GBP:'£'}[c]||c;}
 function fmtMoney(a,c){return currSymbol(c||'USD')+Number(a||0).toLocaleString();}
-function fmtDate(d){if(!d)return'—';var p=d.split('-');return(p[2]||'??')+'/'+(p[1]||'??')+'/'+(p[0]||'????').slice(2);}
+function fmtDate(d){
+  if(!d)return'—';
+  var p=String(d).split('-');if(p.length<3)return d;
+  var yy=p[0]||'????',mm=(p[1]||'??').slice(0,2),dd=(p[2]||'??').slice(0,2);
+  var fmt=(appState.profile&&appState.profile.dateFormat)||'DD/MM/YYYY';
+  if(fmt==='MM/DD/YYYY')return mm+'/'+dd+'/'+yy;
+  if(fmt==='YYYY-MM-DD')return yy+'-'+mm+'-'+dd;
+  return dd+'/'+mm+'/'+yy;
+}
 function todayStr(){return TODAY.toISOString().split('T')[0];}
 function showToast(msg,type){
   var c=document.getElementById('toast-container'),t=document.createElement('div');t.className='toast '+(type||'info');
@@ -581,7 +593,7 @@ function populatePropertySelects(){
 }
 function populateTenantSelects(){
   var t=getTenants();
-  var opts=t.map(function(x){return'<option value="'+esc(x.first+' '+x.last)+'">'+esc(x.first+' '+x.last)+'</option>';}).join('')||'<option>No tenants yet</option>';
+  var opts=t.map(function(x){return'<option value="'+esc(x.first+' '+x.last)+'">'+esc(x.first+' '+x.last)+'</option>';}).join('')||'<option value="">No tenants yet — add a tenant first</option>';
   ['new-pay-tenant','msg-to-tenant'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML=opts;});
 }
 function updateCountryFilter(){
@@ -625,7 +637,58 @@ function executeDeleteProperty(){
   propsPage=Math.max(0,Math.min(propsPage,Math.ceil(getFilteredProps().length/PROPS_PER_PAGE)-1));
   populatePropertySelects();renderProperties();renderDashboard();closeModal('modal-delete-confirm');showToast(name+' removed','info');
 }
-function editProperty(idx){var p=getProps()[idx];if(!p)return;showToast('Edit coming soon — remove and re-add for now','info');}
+function editProperty(idx){
+  var p=getProps()[idx];if(!p)return;
+  document.getElementById('edit-prop-idx').value=idx;
+  document.getElementById('edit-prop-name').value=p.name||'';
+  document.getElementById('edit-prop-address').value=p.address||'';
+  document.getElementById('edit-prop-city').value=p.city||'';
+  document.getElementById('edit-prop-zip').value=p.zip||'';
+  document.getElementById('edit-prop-rent').value=p.rent||0;
+  document.getElementById('edit-prop-size').value=p.size||0;
+  document.getElementById('edit-prop-rooms').value=p.rooms||0;
+  document.getElementById('edit-prop-notes').value=p.notes||'';
+  var countrySel=document.getElementById('edit-prop-country');
+  var countries=(appState.profile&&appState.profile.countries)||['United States','Ukraine','Portugal'];
+  if(p.country&&countries.indexOf(p.country)===-1)countries=countries.concat([p.country]);
+  countrySel.innerHTML=countries.map(function(c){return'<option'+(c===p.country?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+  [['edit-prop-type','type'],['edit-prop-status','status'],['edit-prop-currency','currency']].forEach(function(pair){
+    var el=document.getElementById(pair[0]);if(!el)return;
+    Array.from(el.options).forEach(function(o){o.selected=o.value===p[pair[1]];});
+  });
+  openModal('modal-edit-property');
+}
+function savePropertyEdit(){
+  var idx=parseInt(document.getElementById('edit-prop-idx').value,10);
+  var props=getProps(),p=props[idx];if(!p){showToast('Property not found','error');return;}
+  var newName=document.getElementById('edit-prop-name').value.trim();
+  if(!newName){showToast('Property name required','error');return;}
+  var oldName=p.name;
+  p.name=newName;
+  p.address=document.getElementById('edit-prop-address').value.trim();
+  p.city=document.getElementById('edit-prop-city').value.trim();
+  p.zip=document.getElementById('edit-prop-zip').value.trim();
+  p.country=document.getElementById('edit-prop-country').value;
+  p.type=document.getElementById('edit-prop-type').value;
+  p.rent=Number(document.getElementById('edit-prop-rent').value)||0;
+  p.currency=document.getElementById('edit-prop-currency').value;
+  p.size=Number(document.getElementById('edit-prop-size').value)||0;
+  p.rooms=Number(document.getElementById('edit-prop-rooms').value)||0;
+  p.status=document.getElementById('edit-prop-status').value;
+  p.notes=document.getElementById('edit-prop-notes').value.trim();
+  if(oldName&&oldName!==newName){
+    var tenants=getTenants();tenants.forEach(function(t){if(t.property===oldName)t.property=newName;});
+    var payments=getPayments();payments.forEach(function(pm){if(pm.property===oldName)pm.property=newName;});
+    var expenses=getExpenses();expenses.forEach(function(e){if(e.property===oldName)e.property=newName;});
+    var maint=getMaint();maint.forEach(function(m){if(m.property===oldName)m.property=newName;});
+    var events=getEvents();events.forEach(function(e){if(e.property===oldName)e.property=newName;});
+    saveTenants(tenants);savePayments(payments);saveExpenses(expenses);saveMaint(maint);saveEvents(events);
+  }
+  saveProps(props);
+  populatePropertySelects();renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDashboard();
+  closeModal('modal-edit-property');
+  showToast('Property updated','success');
+}
 function submitProperty(){
   var name=document.getElementById('prop-name').value.trim();
   if(!name){showToast('Please enter a property name','error');return;}
@@ -653,7 +716,7 @@ function renderTenants(){
     var ini=((t.first||'')[0]||'')+((t.last||'')[0]||''),pb=STATUS_BADGE[t.payment]||'badge-blue';
     var prop=getProps().find(function(p){return p.name===t.property;}),country=prop?prop.country:'—';
     var docCount=(t.documents&&t.documents.length)||0;
-    return'<tr><td class="primary"><div style="display:flex;align-items:center;gap:8px"><div style="width:26px;height:26px;border-radius:50%;background:'+COLORS[i%COLORS.length]+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">'+esc(ini.toUpperCase())+'</div>'+esc(t.first+' '+t.last)+'</div></td><td>'+esc(t.property||'—')+'</td><td>'+countryFlag(country)+' '+esc(country)+'</td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(t.leaseStart)+'</td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(t.leaseEnd)+'</td><td style="font-family:\'DM Mono\',monospace">'+fmtMoney(t.rent,t.currency)+'</td><td><span class="badge '+pb+'">'+esc(t.payment||'—')+'</span></td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="openTenantDocs(\''+t.id+'\')">📎 Docs'+(docCount?' ('+docCount+')':'')+'</button> <button class="btn btn-sm" onclick="remindTenant(\''+t.id+'\')">Remind</button></td></tr>';
+    return'<tr><td class="primary"><div style="display:flex;align-items:center;gap:8px"><div style="width:26px;height:26px;border-radius:50%;background:'+COLORS[i%COLORS.length]+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">'+esc(ini.toUpperCase())+'</div>'+esc(t.first+' '+t.last)+'</div></td><td>'+esc(t.property||'—')+'</td><td>'+countryFlag(country)+' '+esc(country)+'</td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(t.leaseStart)+'</td><td style="color:var(--text2);font-family:\'DM Mono\',monospace">'+fmtDate(t.leaseEnd)+'</td><td style="font-family:\'DM Mono\',monospace">'+fmtMoney(t.rent,t.currency)+'</td><td><span class="badge '+pb+'">'+esc(t.payment||'—')+'</span></td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="openEditTenant(\''+t.id+'\')">Edit</button> <button class="btn btn-sm" onclick="openTenantDocs(\''+t.id+'\')">📎 '+(docCount?'('+docCount+')':'Docs')+'</button> <button class="btn btn-sm" onclick="remindTenant(\''+t.id+'\')">Remind</button></td></tr>';
   }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No tenants found.</td></tr>';
   var badge=document.getElementById('nav-tenants-badge');if(badge)badge.textContent=tenants.length;
   var info=document.getElementById('tenants-page-info');if(info)info.textContent='Showing '+filtered.length+' of '+tenants.length+' tenants';
@@ -667,6 +730,79 @@ function submitTenant(){
   if(prop){var props=getProps(),p=props.find(function(x){return x.name===prop;});if(p){p.tenant=first+' '+last;p.status='Rented';saveProps(props);}}
   populateTenantSelects();renderTenants();renderProperties();renderDashboard();closeModal('modal-tenant');showToast(first+' '+last+' added','success');
   ['ten-first','ten-last','ten-email','ten-phone','ten-rent','ten-id'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+}
+function openEditTenant(id){
+  var t=findTenantById(id);if(!t){showToast('Tenant not found','error');return;}
+  document.getElementById('edit-ten-id').value=t.id;
+  document.getElementById('edit-ten-first').value=t.first||'';
+  document.getElementById('edit-ten-last').value=t.last||'';
+  document.getElementById('edit-ten-email').value=t.email||'';
+  document.getElementById('edit-ten-phone').value=t.phone||'';
+  document.getElementById('edit-ten-start').value=t.leaseStart||'';
+  document.getElementById('edit-ten-end').value=t.leaseEnd||'';
+  document.getElementById('edit-ten-rent').value=t.rent||0;
+  document.getElementById('edit-ten-idnum').value=t.idNumber||'';
+  var propSel=document.getElementById('edit-ten-prop');
+  var props=getProps();
+  propSel.innerHTML='<option value="">— None —</option>'+props.map(function(p){return'<option value="'+esc(p.name)+'"'+(p.name===t.property?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
+  [['edit-ten-currency','currency'],['edit-ten-payment','payment']].forEach(function(pair){
+    var el=document.getElementById(pair[0]);if(!el)return;
+    Array.from(el.options).forEach(function(o){o.selected=o.value===t[pair[1]];});
+  });
+  openModal('modal-edit-tenant');
+}
+function saveTenantEdit(){
+  var id=document.getElementById('edit-ten-id').value;
+  var t=findTenantById(id);if(!t){showToast('Tenant not found','error');return;}
+  var first=document.getElementById('edit-ten-first').value.trim();
+  var last=document.getElementById('edit-ten-last').value.trim();
+  if(!first||!last){showToast('First and last name required','error');return;}
+  var oldName=t.first+' '+t.last,oldProp=t.property;
+  t.first=first;t.last=last;
+  t.email=document.getElementById('edit-ten-email').value.trim();
+  t.phone=document.getElementById('edit-ten-phone').value.trim();
+  t.property=document.getElementById('edit-ten-prop').value;
+  t.leaseStart=document.getElementById('edit-ten-start').value;
+  t.leaseEnd=document.getElementById('edit-ten-end').value;
+  t.rent=Number(document.getElementById('edit-ten-rent').value)||0;
+  t.currency=document.getElementById('edit-ten-currency').value;
+  t.idNumber=document.getElementById('edit-ten-idnum').value.trim();
+  t.payment=document.getElementById('edit-ten-payment').value;
+  var newName=t.first+' '+t.last;
+  var props=getProps();
+  if(oldProp&&oldProp!==t.property){
+    var oldP=props.find(function(p){return p.name===oldProp;});
+    if(oldP&&oldP.tenant===oldName){oldP.tenant='';if(oldP.status==='Rented')oldP.status='Vacant';}
+  }
+  if(t.property){
+    var newP=props.find(function(p){return p.name===t.property;});
+    if(newP){newP.tenant=newName;if(newP.status!=='Partial')newP.status='Rented';}
+  }
+  if(oldName!==newName){
+    var pays=getPayments();pays.forEach(function(p){if(p.tenant===oldName)p.tenant=newName;});savePayments(pays);
+    var allMsgs=getMsgs();if(allMsgs[oldName]){allMsgs[newName]=allMsgs[oldName];delete allMsgs[oldName];saveMsgs(allMsgs);}
+  }
+  saveTenants(getTenants());saveProps(props);
+  populateTenantSelects();populatePropertySelects();renderTenants();renderProperties();renderPayments();renderDashboard();
+  closeModal('modal-edit-tenant');
+  showToast('Tenant updated','success');
+}
+function deleteTenantFromEdit(){
+  var id=document.getElementById('edit-ten-id').value;
+  var t=findTenantById(id);if(!t)return;
+  if(!confirm('Delete '+t.first+' '+t.last+'? Their attached documents will also be removed.'))return;
+  var name=t.first+' '+t.last;
+  var props=getProps();
+  props.forEach(function(p){if(p.tenant===name){p.tenant='';if(p.status==='Rented')p.status='Vacant';}});
+  if(t.documents&&t.documents.length){
+    var paths=t.documents.map(function(d){return d.path;});
+    sb.storage.from('tenant-docs').remove(paths);
+  }
+  var tenants=getTenants().filter(function(x){return x.id!==id;});
+  saveTenants(tenants);saveProps(props);
+  populateTenantSelects();populatePropertySelects();renderTenants();renderProperties();renderDashboard();
+  closeModal('modal-edit-tenant');
+  showToast('Tenant removed','info');
 }
 var PAY_STATUS_BADGE={Paid:'badge-green',Pending:'badge-amber',Overdue:'badge-red'};
 function renderPayments(){
@@ -854,7 +990,7 @@ function renderDashboard(){
   var propsList=document.getElementById('dash-props-list');
   if(propsList){var recent=props.slice(0,4);propsList.innerHTML=recent.length?recent.map(function(p){var sb=STATUS_BADGE[p.status]||'badge-blue';return'<div class="row-item"><div class="row-icon" style="background:rgba(61,126,245,.1)">'+countryFlag(p.country)+'</div><div class="row-info"><div class="row-name">'+esc(p.name)+'</div><div class="row-sub">'+esc(p.address||p.city||p.country||'—')+'</div></div><div class="row-right"><span class="badge '+sb+'">'+esc(p.status)+'</span><div class="row-amount" style="margin-top:3px">'+fmtMoney(p.rent,p.currency)+'</div></div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);padding:12px 0">No properties yet.</div>';}
   var payList=document.getElementById('dash-pay-list');
-  if(payList){var pending=payments.filter(function(p){return p.status!=='Paid';}).slice(0,4);payList.innerHTML=pending.length?pending.map(function(p){var sb=STATUS_BADGE[p.status]||'badge-amber';return'<div class="row-item"><div class="row-info"><div class="row-name">'+esc(p.tenant)+'</div><div class="row-sub">Due: '+fmtDate(p.dueDate)+'</div></div><div class="row-right"><span class="badge '+sb+'">'+esc(p.status)+'</span><div class="row-amount '+(p.status==='Overdue'?'style="color:var(--red)"':'')+'" style="margin-top:3px">'+fmtMoney(p.amount,p.currency)+'</div></div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);padding:12px 0">No pending payments.</div>';}
+  if(payList){var pending=payments.filter(function(p){return p.status!=='Paid';}).slice(0,4);payList.innerHTML=pending.length?pending.map(function(p){var sb=STATUS_BADGE[p.status]||'badge-amber',amtStyle='margin-top:3px'+(p.status==='Overdue'?';color:var(--red)':'');return'<div class="row-item"><div class="row-info"><div class="row-name">'+esc(p.tenant)+'</div><div class="row-sub">Due: '+fmtDate(p.dueDate)+'</div></div><div class="row-right"><span class="badge '+sb+'">'+esc(p.status)+'</span><div class="row-amount" style="'+amtStyle+'">'+fmtMoney(p.amount,p.currency)+'</div></div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);padding:12px 0">No pending payments.</div>';}
   var countriesDiv=document.getElementById('dash-countries');
   if(countriesDiv){var byC={};props.forEach(function(p){byC[p.country]=(byC[p.country]||0)+1;});countriesDiv.innerHTML=Object.keys(byC).length?Object.keys(byC).map(function(c){var pct=Math.round(byC[c]/totalProps*100);return'<div class="prog-row"><div class="prog-label"><span>'+countryFlag(c)+' '+esc(c)+'</span><span style="color:var(--accent2)">'+byC[c]+' propert'+(byC[c]===1?'y':'ies')+'</span></div><div class="prog-track"><div class="prog-fill" style="width:'+pct+'%;background:var(--accent)"></div></div></div>';}).join(''):'<div style="font-size:12px;color:var(--text3)">No properties added yet.</div>';}
   buildDashBars();renderDashEvents();
@@ -959,6 +1095,7 @@ function saveSettings(){
   persist();
   document.getElementById('user-name-sidebar').textContent=(p.first||'')+' '+(p.last||'');
   document.getElementById('user-avatar-sidebar').textContent=(((p.first||'?')[0]||'')+((p.last||'')[0]||'')).toUpperCase();
+  renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDocuments();renderDashboard();buildCalendar(calYear,calMonth);
   showToast('Settings saved','success');
 }
 async function changePassword(){
