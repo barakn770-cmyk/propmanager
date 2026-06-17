@@ -568,7 +568,7 @@ function showToast(msg,type){
 }
 function openModal(id){
   var el=document.getElementById(id);if(!el)return;el.classList.add('open');
-  var ds=todayStr();el.querySelectorAll('input[type=date]').forEach(function(i){if(!i.value)i.value=ds;});
+  if(id.indexOf('modal-edit')!==0){var ds=todayStr();el.querySelectorAll('input[type=date]').forEach(function(i){if(!i.value)i.value=ds;});}
 }
 function closeModal(id){var el=document.getElementById(id);if(el)el.classList.remove('open');}
 document.addEventListener('DOMContentLoaded',function(){
@@ -834,7 +834,8 @@ function openEditPayment(idx){
 function savePaymentEdit(){
   var idx=parseInt(document.getElementById('edit-pay-idx').value,10),amt=document.getElementById('edit-pay-amount').value;
   if(!amt||amt<=0){showToast('Invalid amount','error');return;}
-  var p=getPayments();p[idx]=Object.assign({},p[idx],{amount:Number(amt),dueDate:document.getElementById('edit-pay-due').value,paidDate:document.getElementById('edit-pay-paid').value,method:document.getElementById('edit-pay-method').value,status:document.getElementById('edit-pay-status').value,currency:document.getElementById('edit-pay-currency').value,notes:document.getElementById('edit-pay-notes').value});
+  var p=getPayments(),editStatus=document.getElementById('edit-pay-status').value;
+  p[idx]=Object.assign({},p[idx],{amount:Number(amt),dueDate:document.getElementById('edit-pay-due').value,paidDate:editStatus==='Paid'?document.getElementById('edit-pay-paid').value:'',method:document.getElementById('edit-pay-method').value,status:editStatus,currency:document.getElementById('edit-pay-currency').value,notes:document.getElementById('edit-pay-notes').value});
   savePayments(p);renderPayments();renderDashboard();closeModal('modal-edit-payment');showToast('Payment updated','success');
 }
 function markPaymentPaid(){if(!document.getElementById('edit-pay-paid').value)document.getElementById('edit-pay-paid').value=todayStr();document.getElementById('edit-pay-status').value='Paid';savePaymentEdit();}
@@ -847,8 +848,8 @@ function submitPayment(){
   var tenant=document.getElementById('new-pay-tenant').value,prop=document.getElementById('new-pay-property').value.trim(),amt=document.getElementById('pay-amount-input').value;
   if(!amt||amt<=0){showToast('Please enter a valid amount','error');return;}
   if(!tenant){showToast('Please select a tenant','error');return;}
-  var p=getPayments();
-  p.unshift({tenant:tenant,property:prop||tenant,amount:Number(amt),currency:document.getElementById('new-pay-currency').value,dueDate:document.getElementById('pay-due-input').value,paidDate:document.getElementById('pay-date-input').value,method:document.getElementById('new-pay-method').value,status:document.getElementById('new-pay-status').value,notes:document.getElementById('pay-notes').value});
+  var p=getPayments(),payStatus=document.getElementById('new-pay-status').value;
+  p.unshift({tenant:tenant,property:prop||tenant,amount:Number(amt),currency:document.getElementById('new-pay-currency').value,dueDate:document.getElementById('pay-due-input').value,paidDate:payStatus==='Paid'?document.getElementById('pay-date-input').value:'',method:document.getElementById('new-pay-method').value,status:payStatus,notes:document.getElementById('pay-notes').value});
   savePayments(p);renderPayments();renderDashboard();closeModal('modal-payment');showToast('Payment recorded for '+tenant,'success');
   ['pay-amount-input','pay-due-input','pay-date-input','pay-notes','new-pay-property'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
 }
@@ -1054,13 +1055,15 @@ function openPortalPayment(){
   setTimeout(function(){var sel=document.getElementById('new-pay-tenant');if(sel)Array.from(sel.options).forEach(function(o){o.selected=o.text===(t.first+' '+t.last);});var pEl=document.getElementById('new-pay-property');if(pEl)pEl.value=t.property||'';},50);
 }
 function submitSendMessage(){
-  var selEl=document.getElementById('msg-to-tenant'),idx=selEl?parseInt(selEl.value,10):0,body=document.getElementById('msg-body').value.trim(),subject=document.getElementById('msg-subject').value.trim();
+  var selEl=document.getElementById('msg-to-tenant'),val=selEl?selEl.value:'',body=document.getElementById('msg-body').value.trim(),subject=document.getElementById('msg-subject').value.trim();
   if(!body){showToast('Please type a message','error');return;}
-  var t=getTenants()[idx];if(!t)return;var name=t.first+' '+t.last,allMsgs=getMsgs();
+  var tenants=getTenants(),t=/^\d+$/.test(val)?tenants[parseInt(val,10)]:tenants.find(function(x){return x.first+' '+x.last===val;});
+  if(!t){showToast('Please select a tenant','error');return;}
+  var name=t.first+' '+t.last,allMsgs=getMsgs();
   if(!allMsgs[name])allMsgs[name]=[];allMsgs[name].push({from:'owner',text:(subject?'['+subject+'] ':'')+body,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
   saveMsgs(allMsgs);closeModal('modal-send-message');showToast('Message sent to '+name,'success');
   ['msg-subject','msg-body'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-  if(selectedPortalTenant===idx)renderPortalMessages(name);
+  if(selectedPortalTenant===tenants.indexOf(t))renderPortalMessages(name);
 }
 function loadSettings(){
   if(!currentUser)return;
