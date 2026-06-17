@@ -282,6 +282,7 @@ select.form-input option{background:var(--bg3)}
       <div class="nav-item" id="nav-settings" onclick="nav('settings',this)"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
     </div>
     <div class="sidebar-bottom">
+      <div id="workspace-switcher" style="display:none;padding:6px 8px 10px"></div>
       <div class="user-tile">
         <div class="user-avatar" id="user-avatar-sidebar">?</div>
         <div><div class="user-name" id="user-name-sidebar">—</div><div class="user-role">Property Owner</div></div>
@@ -387,6 +388,7 @@ select.form-input option{background:var(--bg3)}
           <div class="card"><div class="card-header"><div class="card-title">⚙️ Preferences</div></div><div class="form-group"><label class="form-label">Base Currency</label><select class="form-input" id="set-currency"><option value="USD">USD — US Dollar ($)</option><option value="EUR">EUR — Euro (€)</option><option value="UAH">UAH — Ukrainian Hryvnia (₴)</option><option value="GBP">GBP — British Pound (£)</option></select></div><div class="form-group"><label class="form-label">Date Format</label><select class="form-input" id="set-dateformat"><option value="MM/DD/YYYY">MM/DD/YYYY</option><option value="DD/MM/YYYY">DD/MM/YYYY</option><option value="YYYY-MM-DD">YYYY-MM-DD</option></select></div><div class="form-group"><label class="form-label">Timezone</label><select class="form-input" id="set-timezone"><option>UTC</option><option>America/New_York</option><option>America/Los_Angeles</option><option>Europe/Lisbon</option><option>Europe/Kyiv</option><option>Asia/Jerusalem</option></select></div><div class="form-group"><label class="form-label">Reminder window (days before due / expiry)</label><input class="form-input" type="number" id="set-reminder-days" placeholder="30"></div></div>
           <div class="card"><div class="card-header"><div class="card-title">🔒 Change Password</div></div><div class="form-group"><label class="form-label">Current Password</label><input class="form-input" type="password" id="set-old-pass"></div><div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="set-new-pass"></div><div class="form-group"><label class="form-label">Confirm New Password</label><input class="form-input" type="password" id="set-confirm-pass"></div><button class="btn btn-primary" onclick="changePassword()" style="width:100%;justify-content:center">Update Password</button></div>
           <div class="card"><div class="card-header"><div class="card-title">🌍 Countries in Portfolio</div></div><div id="set-countries-list" style="margin-bottom:14px"></div><div style="display:flex;gap:8px"><input class="form-input" id="set-new-country" placeholder="e.g. United States" style="flex:1"><button class="btn btn-primary" onclick="addCountry()">Add</button></div></div>
+          <div class="card" style="grid-column:1/-1"><div class="card-header"><div class="card-title">👥 Team Access</div></div><div style="font-size:12px;color:var(--text3);line-height:1.55;margin-bottom:12px">Invite people by email to view and edit <strong>your</strong> portfolio. They sign in to PropManager with that same email (register or Google) and get access automatically — switch between portfolios from the bottom-left menu. Everyone with access can edit.</div><div style="display:flex;gap:8px;margin-bottom:14px"><input class="form-input" id="team-invite-email" type="email" placeholder="colleague@email.com" style="flex:1" autocomplete="off"><button class="btn btn-primary" onclick="inviteTeamMember()">Invite</button></div><div id="team-members-list"></div><div id="team-shared-list" style="margin-top:14px"></div></div>
           <div class="card" style="grid-column:1/-1"><div class="card-header"><div class="card-title">🤖 AI Assistant — Anthropic API Key</div></div><div style="font-size:12px;color:var(--text3);line-height:1.55;margin-bottom:12px">The AI Assistant calls Anthropic directly from your browser. Paste your own API key below — it's stored locally in this browser only and never leaves your device except to call Anthropic. Get a key at <a href="https://console.anthropic.com/" target="_blank" style="color:var(--accent2)">console.anthropic.com</a>.<br><strong style="color:var(--amber)">⚠ Anyone with access to this browser can read your key. Don't use a shared computer.</strong></div><div class="form-group" style="margin-bottom:8px"><label class="form-label">API Key</label><input class="form-input" type="password" id="set-ai-key" placeholder="sk-ant-..." autocomplete="off"></div><button class="btn btn-primary" onclick="saveAiKey()">Save Key</button> <button class="btn btn-danger" onclick="clearAiKey()">Remove Key</button> <span id="set-ai-key-status" style="font-size:12px;color:var(--text3);margin-left:8px"></span></div>
         </div>
         <div class="card" style="margin-top:4px;border-color:rgba(240,78,106,0.2)"><div class="card-header"><div class="card-title" style="color:var(--red)">⚠ Danger Zone</div></div><div style="display:flex;align-items:center;justify-content:space-between;font-size:13px"><div><div style="font-weight:500">Clear all data</div><div style="color:var(--text3);font-size:12px;margin-top:2px">Permanently delete all properties, tenants, payments and records</div></div><button class="btn btn-danger" onclick="confirmClearAll()">Clear All Data</button></div></div>
@@ -434,6 +436,7 @@ const SUPABASE_URL='https://mzfyhlgzvusbpbeaznrh.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_xcKLqwdR3Eu6Dwe7aDi3bw_IdAARWhy';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 var currentUser=null,TODAY=new Date();
+var activeWorkspaceId=null,myWorkspaces=[];
 var appState={profile:{},properties:[],tenants:[],payments:[],expenses:[],maintenance:[],events:[],documents:[],messages:{}};
 var persistTimer=null,rtChannel=null;
 function blankState(profile){return{profile:profile||{},properties:[],tenants:[],payments:[],expenses:[],maintenance:[],events:[],documents:[],messages:{}};}
@@ -441,16 +444,22 @@ function persist(){
   clearTimeout(persistTimer);
   persistTimer=setTimeout(async function(){
     if(!currentUser)return;
-    var{error}=await sb.from('app_data').upsert({user_id:currentUser.id,data:appState,updated_at:new Date().toISOString()});
+    var wid=activeWorkspaceId||currentUser.id,error;
+    if(wid===currentUser.id){var r=await sb.from('app_data').upsert({user_id:wid,data:appState,updated_at:new Date().toISOString()});error=r.error;}
+    else{var r2=await sb.from('app_data').update({data:appState,updated_at:new Date().toISOString()}).eq('user_id',wid);error=r2.error;}
     if(error)showToast('Save failed: '+error.message,'error');
   },400);
 }
 async function loadAppData(){
-  var{data,error}=await sb.from('app_data').select('data').eq('user_id',currentUser.id).maybeSingle();
+  if(!activeWorkspaceId)activeWorkspaceId=currentUser.id;
+  var wid=activeWorkspaceId;
+  var{data,error}=await sb.from('app_data').select('data').eq('user_id',wid).maybeSingle();
   if(error){showToast('Load failed: '+error.message,'error');return;}
   if(data&&data.data){
     var d=data.data;
     appState={profile:d.profile||{},properties:d.properties||[],tenants:d.tenants||[],payments:d.payments||[],expenses:d.expenses||[],maintenance:d.maintenance||[],events:d.events||[],documents:d.documents||[],messages:d.messages||{}};
+  } else if(wid!==currentUser.id){
+    appState=blankState();showToast('Shared portfolio is empty or no longer accessible','info');
   } else {
     var meta=(currentUser&&currentUser.user_metadata)||{},fullName=meta.full_name||meta.name||'';
     var first=meta.given_name||(fullName?fullName.split(' ')[0]:'')||'User';
@@ -467,7 +476,8 @@ async function signInWithGoogle(btn){
 function subscribeRealtime(){
   if(rtChannel){sb.removeChannel(rtChannel);rtChannel=null;}
   if(!currentUser)return;
-  rtChannel=sb.channel('app_data_'+currentUser.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_data',filter:'user_id=eq.'+currentUser.id},function(payload){
+  var wid=activeWorkspaceId||currentUser.id;
+  rtChannel=sb.channel('app_data_'+wid).on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_data',filter:'user_id=eq.'+wid},function(payload){
     if(!payload.new||!payload.new.data)return;
     var d=payload.new.data;
     appState={profile:d.profile||{},properties:d.properties||[],tenants:d.tenants||[],payments:d.payments||[],expenses:d.expenses||[],maintenance:d.maintenance||[],events:d.events||[],documents:d.documents||[],messages:d.messages||{}};
@@ -505,7 +515,7 @@ async function doRegister(){
 async function doLogout(){
   if(rtChannel){sb.removeChannel(rtChannel);rtChannel=null;}
   await sb.auth.signOut();
-  currentUser=null;
+  currentUser=null;activeWorkspaceId=null;myWorkspaces=[];
   appState=blankState();
   document.getElementById('app-shell').style.display='none';document.getElementById('auth-screen').style.display='flex';
   document.getElementById('login-email').value='';document.getElementById('login-password').value='';switchAuthTab('login');
@@ -519,6 +529,7 @@ function switchAuthTab(t){
   document.getElementById('auth-error').style.display='none';
 }
 function bootApp(){
+  if(currentUser&&!activeWorkspaceId)activeWorkspaceId=currentUser.id;
   document.getElementById('auth-screen').style.display='none';
   var shell=document.getElementById('app-shell');shell.style.display='flex';shell.style.flexDirection='row';
   var p=appState.profile||{};
@@ -534,6 +545,7 @@ function bootApp(){
   document.getElementById('dash-sub').textContent=TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   applyTheme(currentTheme());
   subscribeRealtime();
+  loadWorkspaces();
 }
 window.addEventListener('DOMContentLoaded',async function(){
   var{data:sessionData}=await sb.auth.getSession();
@@ -1127,6 +1139,7 @@ function loadSettings(){
   renderCountriesList();
   var keyStatus=g('set-ai-key-status');if(keyStatus){var k=LS.get(AI_KEY_LS,'');keyStatus.textContent=k?'✓ Key saved ('+k.slice(0,7)+'…'+k.slice(-4)+')':'No key set';keyStatus.style.color=k?'var(--green)':'var(--text3)';}
   var keyInput=g('set-ai-key');if(keyInput)keyInput.value='';
+  renderTeam();
 }
 function saveAiKey(){
   var inp=document.getElementById('set-ai-key'),k=inp?inp.value.trim():'';
@@ -1427,6 +1440,79 @@ function exportAllExcel(){
   html+=xlTable('Expenses',['Date','Property','Category','Description','Amount','Currency'],getExpenses().map(function(e){return[e.date||'',e.property||'General',e.category,e.description||'',e.amount||0,e.currency||'USD'];}));
   html+='</body></html>';
   downloadBlob('propmanager-export.xls',html,'application/vnd.ms-excel');showToast('Excel workbook downloaded','success');
+}
+/* ===== Team / shared workspaces ===== */
+async function loadWorkspaces(){
+  if(!currentUser)return;
+  myWorkspaces=[{ownerId:currentUser.id,label:'My portfolio',own:true}];
+  var email=(currentUser.email||'').toLowerCase();
+  if(email){
+    try{var inv=await sb.from('team_invites').select('*').eq('email',email);
+      if(inv.data){for(var i=0;i<inv.data.length;i++){var iv=inv.data[i];
+        await sb.from('team_members').insert({owner_id:iv.owner_id,member_id:currentUser.id,email:email,role:iv.role||'editor'});
+        await sb.from('team_invites').delete().eq('id',iv.id);}}
+    }catch(e){}
+  }
+  try{
+    var mem=await sb.from('team_members').select('owner_id').eq('member_id',currentUser.id);
+    if(mem.data){for(var j=0;j<mem.data.length;j++){
+      var oid=mem.data[j].owner_id;if(oid===currentUser.id)continue;
+      var lbl='Shared portfolio';
+      try{var od=await sb.from('app_data').select('data').eq('user_id',oid).maybeSingle();
+        if(od.data&&od.data.data&&od.data.data.profile){var pp=od.data.data.profile;var nm=((pp.first||'')+' '+(pp.last||'')).trim();lbl=nm||pp.company||'Shared portfolio';if(pp.company&&nm)lbl=nm+' · '+pp.company;}
+      }catch(e){}
+      myWorkspaces.push({ownerId:oid,label:lbl,own:false});
+    }}
+  }catch(e){}
+  renderWorkspaceSwitcher();
+  if(document.getElementById('panel-settings').style.display!=='none')renderTeam();
+}
+function renderWorkspaceSwitcher(){
+  var box=document.getElementById('workspace-switcher');if(!box)return;
+  if(myWorkspaces.length<=1){box.innerHTML='';box.style.display='none';return;}
+  box.style.display='block';var cur=activeWorkspaceId||currentUser.id;
+  box.innerHTML='<div style="font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin:0 0 4px 4px">Workspace</div><select class="form-input" style="font-size:12px;padding:6px 8px" onchange="switchWorkspace(this.value)">'+myWorkspaces.map(function(w){return'<option value="'+w.ownerId+'"'+(w.ownerId===cur?' selected':'')+'>'+esc(w.label)+'</option>';}).join('')+'</select>';
+}
+async function switchWorkspace(id){
+  if(!id||id===(activeWorkspaceId||currentUser.id))return;
+  activeWorkspaceId=id;
+  await loadAppData();
+  populateCountryFilters();populatePropertySelects();populateTenantSelects();
+  renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDocuments();renderContracts();renderDashboard();renderAlerts();buildCalendar(calYear,calMonth);loadSettings();
+  subscribeRealtime();renderWorkspaceSwitcher();
+  var w=myWorkspaces.find(function(x){return x.ownerId===id;});
+  showToast('Viewing: '+(w?w.label:'workspace'),'info');
+}
+async function inviteTeamMember(){
+  if(!currentUser)return;
+  var inp=document.getElementById('team-invite-email'),email=inp?inp.value.trim().toLowerCase():'';
+  if(!email||email.indexOf('@')===-1){showToast('Enter a valid email','error');return;}
+  if(email===(currentUser.email||'').toLowerCase()){showToast('That is your own email','error');return;}
+  var{error}=await sb.from('team_invites').upsert({owner_id:currentUser.id,email:email,role:'editor'},{onConflict:'owner_id,email'});
+  if(error){showToast('Invite failed: '+error.message,'error');return;}
+  if(inp)inp.value='';renderTeam();showToast('Invited '+email,'success');
+}
+async function renderTeam(){
+  var box=document.getElementById('team-members-list');if(!box||!currentUser)return;
+  var members=[],invites=[];
+  try{var m=await sb.from('team_members').select('*').eq('owner_id',currentUser.id);members=m.data||[];}catch(e){}
+  try{var iv=await sb.from('team_invites').select('*').eq('owner_id',currentUser.id);invites=iv.data||[];}catch(e){}
+  var rows=members.map(function(m){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+esc(m.email||m.member_id)+' <span class="badge badge-green">Active</span></span><button class="btn btn-sm btn-danger" onclick="removeTeamMember(\''+m.id+'\')">Remove</button></div>';})
+    .concat(invites.map(function(x){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>'+esc(x.email)+' <span class="badge badge-amber">Pending</span></span><button class="btn btn-sm btn-danger" onclick="cancelInvite(\''+x.id+'\')">Cancel</button></div>';}));
+  box.innerHTML=rows.length?rows.join(''):'<div style="font-size:12px;color:var(--text3)">No team members yet. Invite someone above.</div>';
+  var sbox=document.getElementById('team-shared-list');
+  if(sbox){var shared=myWorkspaces.filter(function(w){return !w.own;});sbox.innerHTML=shared.length?'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px">Shared with me</div>'+shared.map(function(w){return'<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)">'+esc(w.label)+' <span class="badge badge-blue">member</span></div>';}).join(''):'';}
+}
+async function removeTeamMember(id){
+  if(!confirm('Remove this team member’s access to your portfolio?'))return;
+  var{error}=await sb.from('team_members').delete().eq('id',id);
+  if(error){showToast('Failed: '+error.message,'error');return;}
+  renderTeam();showToast('Access removed','info');
+}
+async function cancelInvite(id){
+  var{error}=await sb.from('team_invites').delete().eq('id',id);
+  if(error){showToast('Failed: '+error.message,'error');return;}
+  renderTeam();showToast('Invite cancelled','info');
 }
 </script>
 </body>
