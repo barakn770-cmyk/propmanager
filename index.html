@@ -692,7 +692,7 @@ function updateCountryFilter(){
   var cur=sel.value;
   sel.innerHTML='<option value="">All Countries</option>'+countries.map(function(c){return'<option'+(c===cur?' selected':'')+'>'+esc(c)+'</option>';}).join('');
 }
-var PROPS_PER_PAGE=10,propsPage=0;
+var PROPS_PER_PAGE=100,propsPage=0;
 function getFilteredProps(){
   var p=getProps(),tf=(document.getElementById('filter-type')||{}).value||'',sf=(document.getElementById('filter-status')||{}).value||'',cf=(document.getElementById('filter-country')||{}).value||'';
   return p.filter(function(x){return(!tf||x.type===tf)&&(!sf||x.status===sf)&&(!cf||x.country===cf);});
