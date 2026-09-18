@@ -719,6 +719,15 @@ function propertyMonthlySeries(name,months){
   }
   return out;
 }
+function portfolioMonthlySeries(months){
+  var props=getProps(),payments=getPayments(),totalRentAll=props.reduce(function(s,p){return s+Number(p.rent||0);},0),out=[];
+  for(var i=months-1;i>=0;i--){
+    var y=TODAY.getFullYear(),m=TODAY.getMonth()-i,md=new Date(y,m,1);
+    var collected=payments.filter(function(p){if(p.status!=='Paid'||!p.paidDate)return false;var pd=new Date(p.paidDate);return pd.getFullYear()===md.getFullYear()&&pd.getMonth()===md.getMonth();}).reduce(function(s,p){return s+Number(p.amount||0);},0);
+    out.push({label:md.toLocaleString('default',{month:'short',year:'2-digit'}),collected:collected,expected:totalRentAll});
+  }
+  return out;
+}
 function sparklineSVG(values,opts){
   opts=opts||{};var w=opts.w||60,h=opts.h||20,color=opts.color||'var(--accent)';
   var max=Math.max.apply(null,values.concat([1])),n=values.length,step=n>1?w/(n-1):0;
@@ -745,8 +754,8 @@ function showPropertyIncome(idx){
     +'<div class="metric '+(outstanding>0?'metric-red':'metric-green')+'" style="padding:12px 14px"><div class="metric-label">Outstanding</div><div class="metric-value" style="font-size:18px">'+fmtMoney(outstanding,'USD')+'</div></div>'
     +'</div>';
   var maxSeries=Math.max.apply(null,series.concat([1]));
-  var barsHtml='<div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Last 6 Months</div><div class="bar-chart" style="margin-bottom:20px">'
-    +series.map(function(v,i){var hpx=Math.round((v/maxSeries)*64);return'<div class="bar-col"><div class="bar-fill" style="height:'+hpx+'px;background:'+(i===5?'var(--accent)':'rgba(61,126,245,.3)')+'"></div><div class="bar-lbl">'+monthLabels[i]+'</div></div>';}).join('')
+  var barsHtml='<div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Last 6 Months</div><div class="bar-chart" style="margin-bottom:20px;height:96px">'
+    +series.map(function(v,i){var hpx=Math.round((v/maxSeries)*56);return'<div class="bar-col"><div style="font-size:9px;color:var(--text3);font-family:\'DM Mono\',monospace">'+(v>=1000?'$'+(v/1000).toFixed(1)+'k':'$'+Math.round(v))+'</div><div class="bar-fill" style="height:'+Math.max(2,hpx)+'px;background:'+(i===5?'var(--accent)':'rgba(61,126,245,.3)')+'"></div><div class="bar-lbl">'+monthLabels[i]+'</div></div>';}).join('')
     +'</div>';
   var netHtml='<div style="font-size:12px;color:var(--text2);margin-bottom:16px">Total expenses recorded: <strong>'+fmtMoney(expTotal,'USD')+'</strong> &nbsp;·&nbsp; Net (all time): <strong style="color:'+(net>=0?'var(--green)':'var(--red)')+'">'+fmtMoney(net,'USD')+'</strong></div>';
   var tableHtml=pays.length?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tenant</th><th>Due Date</th><th>Paid Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>'
@@ -1144,6 +1153,17 @@ function deleteDoc(idx){var d=getDocs();d.splice(idx,1);saveDocs(d);renderDocume
 function renderRevenueReport(period){
   var body=document.getElementById('report-detail-body');if(!body)return;
   var props=getProps(),payments=getPayments();
+  if(period==='monthly'){
+    var fmtShort=function(v){return v>=1000?'$'+(v/1000).toFixed(v>=10000?0:1)+'k':'$'+Math.round(v);};
+    var series=portfolioMonthlySeries(12),maxVal=Math.max.apply(null,series.map(function(s){return Math.max(s.collected,s.expected);}).concat([1]));
+    var selectHtml2='<div style="margin-bottom:14px"><select class="btn" id="rev-period-select" onchange="renderRevenueReport(this.value)"><option value="all">All Time</option><option value="year">This Year</option><option value="month">This Month</option><option value="monthly" selected>Monthly Breakdown</option></select></div>';
+    var yearTotal=series.reduce(function(s,x){return s+x.collected;},0);
+    var summaryHtml2='<div style="margin-bottom:16px"><div style="font-size:28px;font-weight:700;font-family:\'Syne\',sans-serif">'+fmtMoney(yearTotal,'USD')+'</div><div style="font-size:12px;color:var(--text3)">Total collected — last 12 months</div></div>';
+    var barsHtml='<div class="bar-chart" style="margin-bottom:20px;height:104px;align-items:flex-end">'+series.map(function(s,i){var hpx=Math.round((s.collected/maxVal)*70);return'<div class="bar-col"><div style="font-size:9px;color:var(--text3);font-family:\'DM Mono\',monospace">'+fmtShort(s.collected)+'</div><div class="bar-fill" style="height:'+Math.max(2,hpx)+'px;background:'+(i===series.length-1?'var(--accent)':'rgba(61,126,245,.3)')+'"></div><div class="bar-lbl">'+s.label+'</div></div>';}).join('')+'</div>';
+    var tableHtml2='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Month</th><th>Collected</th><th>Expected</th><th>Collection Rate</th></tr></thead><tbody>'+series.slice().reverse().map(function(s){var pct=s.expected?Math.round(s.collected/s.expected*100):null,rc=pct===null?'—':pct+'%',rcColor=pct===null?'var(--text3)':pct>=100?'var(--green)':pct>=60?'var(--amber)':'var(--red)';return'<tr><td class="primary">'+esc(s.label)+'</td><td style="font-family:\'DM Mono\',monospace;color:var(--green)">'+fmtMoney(s.collected,'USD')+'</td><td style="font-family:\'DM Mono\',monospace">'+(s.expected?fmtMoney(s.expected,'USD'):'—')+'</td><td style="font-family:\'DM Mono\',monospace;color:'+rcColor+'">'+rc+'</td></tr>';}).join('')+'</tbody></table></div>';
+    body.innerHTML=selectHtml2+summaryHtml2+barsHtml+tableHtml2;
+    return;
+  }
   var fromDate=null;
   if(period==='month')fromDate=new Date(TODAY.getFullYear(),TODAY.getMonth(),1).toISOString().split('T')[0];
   else if(period==='year')fromDate=new Date(TODAY.getFullYear(),0,1).toISOString().split('T')[0];
@@ -1158,7 +1178,7 @@ function renderRevenueReport(period){
     return{name:p.name,collected:collected,expected:expected,pct:pct};
   }).filter(function(r){return r.collected>0||r.expected;}).sort(function(a,b){return b.collected-a.collected;});
   var periodLabel=period==='all'?'all time':period==='year'?'this year':'this month';
-  var selectHtml='<div style="margin-bottom:14px"><select class="btn" id="rev-period-select" onchange="renderRevenueReport(this.value)"><option value="all"'+(period==='all'?' selected':'')+'>All Time</option><option value="year"'+(period==='year'?' selected':'')+'>This Year</option><option value="month"'+(period==='month'?' selected':'')+'>This Month</option></select></div>';
+  var selectHtml='<div style="margin-bottom:14px"><select class="btn" id="rev-period-select" onchange="renderRevenueReport(this.value)"><option value="all"'+(period==='all'?' selected':'')+'>All Time</option><option value="year"'+(period==='year'?' selected':'')+'>This Year</option><option value="month"'+(period==='month'?' selected':'')+'>This Month</option><option value="monthly">Monthly Breakdown</option></select></div>';
   var summaryHtml='<div style="margin-bottom:16px"><div style="font-size:28px;font-weight:700;font-family:\'Syne\',sans-serif">'+fmtMoney(totalRev,'USD')+'</div><div style="font-size:12px;color:var(--text3)">Total collected — '+periodLabel+' (paid payments)</div></div>';
   var tableHtml;
   if(!rows.length){
