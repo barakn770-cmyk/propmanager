@@ -459,11 +459,13 @@ var persistTimer=null,rtChannel=null;
 function blankState(profile){return{profile:profile||{},properties:[],tenants:[],payments:[],expenses:[],maintenance:[],events:[],documents:[],messages:{}};}
 function persist(){
   clearTimeout(persistTimer);
+  if(!currentUser)return;
+  var wid=activeWorkspaceId||currentUser.id,snapshot=JSON.parse(JSON.stringify(appState));
   persistTimer=setTimeout(async function(){
     if(!currentUser)return;
-    var wid=activeWorkspaceId||currentUser.id,error;
-    if(wid===currentUser.id){var r=await sb.from('app_data').upsert({user_id:wid,data:appState,updated_at:new Date().toISOString()});error=r.error;}
-    else{var r2=await sb.from('app_data').update({data:appState,updated_at:new Date().toISOString()}).eq('user_id',wid);error=r2.error;}
+    var error;
+    if(wid===currentUser.id){var r=await sb.from('app_data').upsert({user_id:wid,data:snapshot,updated_at:new Date().toISOString()});error=r.error;}
+    else{var r2=await sb.from('app_data').update({data:snapshot,updated_at:new Date().toISOString()}).eq('user_id',wid);error=r2.error;}
     if(error)showToast('Save failed: '+error.message,'error');
   },400);
 }
@@ -637,7 +639,7 @@ function getMaint(){return appState.maintenance;}function saveMaint(d){appState.
 function getEvents(){return appState.events;}function saveEvents(d){appState.events=d;persist();}
 function getDocs(){return appState.documents;}function saveDocs(d){appState.documents=d;persist();}
 function getMsgs(){return appState.messages;}function saveMsgs(d){appState.messages=d;persist();}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function currSymbol(c){return{USD:'$',EUR:'€',UAH:'₴',GBP:'£'}[c]||c;}
 function fmtMoney(a,c){return currSymbol(c||'USD')+Number(a||0).toLocaleString();}
 function fmtDate(d){
@@ -716,6 +718,8 @@ function renderProperties(){
 function propsPrevPage(){if(propsPage>0){propsPage--;renderProperties();}}
 function propsNextPage(){if((propsPage+1)*PROPS_PER_PAGE<getFilteredProps().length){propsPage++;renderProperties();}}
 var pendingDeleteIdx=null;
+var _submitGuard={};
+function guardedOnce(key){if(_submitGuard[key])return false;_submitGuard[key]=true;setTimeout(function(){_submitGuard[key]=false;},800);return true;}
 function confirmDeleteProperty(idx){
   pendingDeleteIdx=idx;var p=getProps()[idx];
   var el=document.getElementById('delete-prop-name');if(el)el.textContent=p?p.name:'this property';
@@ -724,8 +728,17 @@ function confirmDeleteProperty(idx){
 function executeDeleteProperty(){
   var p=getProps(),name=p[pendingDeleteIdx]?p[pendingDeleteIdx].name:'';
   p.splice(pendingDeleteIdx,1);saveProps(p);pendingDeleteIdx=null;
+  if(name){
+    var tag=name+' (deleted)';
+    var tenants=getTenants();tenants.forEach(function(t){if(t.property===name)t.property=tag;});
+    var payments=getPayments();payments.forEach(function(pm){if(pm.property===name)pm.property=tag;});
+    var expenses=getExpenses();expenses.forEach(function(e){if(e.property===name)e.property=tag;});
+    var maint=getMaint();maint.forEach(function(m){if(m.property===name)m.property=tag;});
+    var events=getEvents();events.forEach(function(e){if(e.property===name)e.property=tag;});
+    saveTenants(tenants);savePayments(payments);saveExpenses(expenses);saveMaint(maint);saveEvents(events);
+  }
   propsPage=Math.max(0,Math.min(propsPage,Math.ceil(getFilteredProps().length/PROPS_PER_PAGE)-1));
-  populatePropertySelects();renderProperties();renderDashboard();closeModal('modal-delete-confirm');showToast(name+' removed','info');
+  populatePropertySelects();renderProperties();renderTenants();renderPayments();renderExpenses();renderMaintenance();renderDashboard();closeModal('modal-delete-confirm');showToast(name+' removed','info');
 }
 function editProperty(idx){
   var p=getProps()[idx];if(!p)return;
@@ -754,6 +767,8 @@ function savePropertyEdit(){
   var props=getProps(),p=props[idx];if(!p){showToast('Property not found','error');return;}
   var newName=document.getElementById('edit-prop-name').value.trim();
   if(!newName){showToast('Property name required','error');return;}
+  var newRent=Number(document.getElementById('edit-prop-rent').value)||0,newPrice=Number(document.getElementById('edit-prop-price').value)||0;
+  if(newRent<0||newPrice<0){showToast('Rent and value cannot be negative','error');return;}
   var oldName=p.name;
   p.name=newName;
   p.address=document.getElementById('edit-prop-address').value.trim();
@@ -761,11 +776,11 @@ function savePropertyEdit(){
   p.zip=document.getElementById('edit-prop-zip').value.trim();
   p.country=document.getElementById('edit-prop-country').value;
   p.type=document.getElementById('edit-prop-type').value;
-  p.rent=Number(document.getElementById('edit-prop-rent').value)||0;
+  p.rent=newRent;
   p.currency=document.getElementById('edit-prop-currency').value;
   p.size=Number(document.getElementById('edit-prop-size').value)||0;
   p.rooms=Number(document.getElementById('edit-prop-rooms').value)||0;
-  p.price=Number(document.getElementById('edit-prop-price').value)||0;
+  p.price=newPrice;
   p.status=document.getElementById('edit-prop-status').value;
   p.notes=document.getElementById('edit-prop-notes').value.trim();
   if(oldName&&oldName!==newName){
@@ -782,10 +797,13 @@ function savePropertyEdit(){
   showToast('Property updated','success');
 }
 function submitProperty(){
+  if(!guardedOnce('prop'))return;
   var name=document.getElementById('prop-name').value.trim();
   if(!name){showToast('Please enter a property name','error');return;}
+  var rentVal=Number(document.getElementById('prop-rent').value)||0,priceVal=Number(document.getElementById('prop-price').value)||0;
+  if(rentVal<0||priceVal<0){showToast('Rent and value cannot be negative','error');return;}
   var props=getProps();
-  props.unshift({name:name,address:document.getElementById('prop-addr-input').value.trim(),city:document.getElementById('prop-city').value.trim(),zip:document.getElementById('prop-zip').value.trim(),country:document.getElementById('prop-country-select').value,type:document.getElementById('prop-type').value,rent:Number(document.getElementById('prop-rent').value)||0,currency:document.getElementById('prop-currency').value,size:Number(document.getElementById('prop-size').value)||0,rooms:Number(document.getElementById('prop-rooms').value)||0,price:Number(document.getElementById('prop-price').value)||0,status:document.getElementById('prop-status').value,notes:document.getElementById('prop-notes').value.trim(),tenant:'',addedAt:todayStr()});
+  props.unshift({name:name,address:document.getElementById('prop-addr-input').value.trim(),city:document.getElementById('prop-city').value.trim(),zip:document.getElementById('prop-zip').value.trim(),country:document.getElementById('prop-country-select').value,type:document.getElementById('prop-type').value,rent:rentVal,currency:document.getElementById('prop-currency').value,size:Number(document.getElementById('prop-size').value)||0,rooms:Number(document.getElementById('prop-rooms').value)||0,price:priceVal,status:document.getElementById('prop-status').value,notes:document.getElementById('prop-notes').value.trim(),tenant:'',addedAt:todayStr()});
   saveProps(props);propsPage=0;populatePropertySelects();renderProperties();renderDashboard();closeModal('modal-property');showToast('"'+name+'" added','success');
   ['prop-name','prop-addr-input','prop-city','prop-zip','prop-rent','prop-size','prop-rooms','prop-price','prop-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
 }
@@ -821,10 +839,15 @@ function renderTenants(){
   var info=document.getElementById('tenants-page-info');if(info)info.textContent='Showing '+filtered.length+' of '+tenants.length+' tenants';
 }
 function submitTenant(){
+  if(!guardedOnce('tenant'))return;
   var first=document.getElementById('ten-first').value.trim(),last=document.getElementById('ten-last').value.trim();
   if(!first||!last){showToast('Please enter tenant name','error');return;}
+  var rentVal=Number(document.getElementById('ten-rent').value)||0,depositVal=Number(document.getElementById('ten-deposit').value)||0;
+  if(rentVal<0||depositVal<0){showToast('Rent and deposit cannot be negative','error');return;}
+  var lStart=document.getElementById('ten-start').value,lEnd=document.getElementById('ten-end').value;
+  if(lStart&&lEnd&&lEnd<lStart){showToast('Lease end date must be after the start date','error');return;}
   var prop=document.getElementById('ten-prop').value,tenants=getTenants();
-  tenants.unshift({first:first,last:last,email:document.getElementById('ten-email').value.trim(),phone:document.getElementById('ten-phone').value.trim(),property:prop,leaseStart:document.getElementById('ten-start').value,leaseEnd:document.getElementById('ten-end').value,rent:Number(document.getElementById('ten-rent').value)||0,currency:document.getElementById('ten-currency').value,idNumber:document.getElementById('ten-id').value.trim(),deposit:Number(document.getElementById('ten-deposit').value)||0,noticeDays:Number(document.getElementById('ten-notice').value)||30,contractStatus:'Active',autoRenew:'no',payment:'Pending',addedAt:todayStr()});
+  tenants.unshift({first:first,last:last,email:document.getElementById('ten-email').value.trim(),phone:document.getElementById('ten-phone').value.trim(),property:prop,leaseStart:lStart,leaseEnd:lEnd,rent:rentVal,currency:document.getElementById('ten-currency').value,idNumber:document.getElementById('ten-id').value.trim(),deposit:depositVal,noticeDays:Number(document.getElementById('ten-notice').value)||30,contractStatus:'Active',autoRenew:'no',payment:'Pending',addedAt:todayStr()});
   saveTenants(tenants);
   if(prop){var props=getProps(),p=props.find(function(x){return x.name===prop;});if(p){p.tenant=first+' '+last;p.status='Rented';saveProps(props);}}
   populateTenantSelects();renderTenants();renderProperties();renderContracts();renderDashboard();closeModal('modal-tenant');showToast(first+' '+last+' added','success');
@@ -858,17 +881,21 @@ function saveTenantEdit(){
   var first=document.getElementById('edit-ten-first').value.trim();
   var last=document.getElementById('edit-ten-last').value.trim();
   if(!first||!last){showToast('First and last name required','error');return;}
+  var editRent=Number(document.getElementById('edit-ten-rent').value)||0,editDeposit=Number(document.getElementById('edit-ten-deposit').value)||0;
+  if(editRent<0||editDeposit<0){showToast('Rent and deposit cannot be negative','error');return;}
+  var editStart=document.getElementById('edit-ten-start').value,editEnd=document.getElementById('edit-ten-end').value;
+  if(editStart&&editEnd&&editEnd<editStart){showToast('Lease end date must be after the start date','error');return;}
   var oldName=t.first+' '+t.last,oldProp=t.property;
   t.first=first;t.last=last;
   t.email=document.getElementById('edit-ten-email').value.trim();
   t.phone=document.getElementById('edit-ten-phone').value.trim();
   t.property=document.getElementById('edit-ten-prop').value;
-  t.leaseStart=document.getElementById('edit-ten-start').value;
-  t.leaseEnd=document.getElementById('edit-ten-end').value;
-  t.rent=Number(document.getElementById('edit-ten-rent').value)||0;
+  t.leaseStart=editStart;
+  t.leaseEnd=editEnd;
+  t.rent=editRent;
   t.currency=document.getElementById('edit-ten-currency').value;
   t.idNumber=document.getElementById('edit-ten-idnum').value.trim();
-  t.deposit=Number(document.getElementById('edit-ten-deposit').value)||0;
+  t.deposit=editDeposit;
   t.noticeDays=Number(document.getElementById('edit-ten-notice').value)||30;
   t.contractStatus=document.getElementById('edit-ten-contract').value;
   t.autoRenew=document.getElementById('edit-ten-autorenew').value;
@@ -877,7 +904,7 @@ function saveTenantEdit(){
   var props=getProps();
   if(oldProp&&oldProp!==t.property){
     var oldP=props.find(function(p){return p.name===oldProp;});
-    if(oldP&&oldP.tenant===oldName){oldP.tenant='';if(oldP.status==='Rented')oldP.status='Vacant';}
+    if(oldP&&oldP.tenant===oldName){oldP.tenant='';if(oldP.status==='Rented'||oldP.status==='Overdue'||oldP.status==='Partial')oldP.status='Vacant';}
   }
   if(t.property){
     var newP=props.find(function(p){return p.name===t.property;});
@@ -898,7 +925,7 @@ function deleteTenantFromEdit(){
   if(!confirm('Delete '+t.first+' '+t.last+'? Their attached documents will also be removed.'))return;
   var name=t.first+' '+t.last;
   var props=getProps();
-  props.forEach(function(p){if(p.tenant===name){p.tenant='';if(p.status==='Rented')p.status='Vacant';}});
+  props.forEach(function(p){if(p.tenant===name){p.tenant='';if(p.status==='Rented'||p.status==='Overdue'||p.status==='Partial')p.status='Vacant';}});
   if(t.documents&&t.documents.length){
     var paths=t.documents.map(function(d){return d.path;});
     sb.storage.from('tenant-docs').remove(paths);
@@ -950,11 +977,12 @@ function autoFillPaymentProp(){
   var propEl=document.getElementById('new-pay-property');if(propEl&&t)propEl.value=t.property||'';
 }
 function submitPayment(){
+  if(!guardedOnce('payment'))return;
   var tenant=document.getElementById('new-pay-tenant').value,prop=document.getElementById('new-pay-property').value.trim(),amt=document.getElementById('pay-amount-input').value;
   if(!amt||amt<=0){showToast('Please enter a valid amount','error');return;}
   if(!tenant){showToast('Please select a tenant','error');return;}
   var p=getPayments(),payStatus=document.getElementById('new-pay-status').value;
-  p.unshift({tenant:tenant,property:prop||tenant,amount:Number(amt),currency:document.getElementById('new-pay-currency').value,dueDate:document.getElementById('pay-due-input').value,paidDate:payStatus==='Paid'?document.getElementById('pay-date-input').value:'',method:document.getElementById('new-pay-method').value,status:payStatus,notes:document.getElementById('pay-notes').value});
+  p.unshift({tenant:tenant,property:prop,amount:Number(amt),currency:document.getElementById('new-pay-currency').value,dueDate:document.getElementById('pay-due-input').value,paidDate:payStatus==='Paid'?document.getElementById('pay-date-input').value:'',method:document.getElementById('new-pay-method').value,status:payStatus,notes:document.getElementById('pay-notes').value});
   savePayments(p);renderPayments();renderDashboard();closeModal('modal-payment');showToast('Payment recorded for '+tenant,'success');
   ['pay-amount-input','pay-due-input','pay-date-input','pay-notes','new-pay-property'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
 }
@@ -972,6 +1000,7 @@ function renderExpenses(){
   var info=document.getElementById('exp-page-info');if(info)info.textContent='Showing '+filtered.length+' of '+expenses.length+' expenses';
 }
 function submitExpense(){
+  if(!guardedOnce('expense'))return;
   var amt=document.getElementById('exp-amount').value;if(!amt||amt<=0){showToast('Please enter a valid amount','error');return;}
   var expenses=getExpenses();
   expenses.unshift({date:document.getElementById('exp-date').value,category:document.getElementById('exp-cat').value,property:document.getElementById('exp-prop').value,description:document.getElementById('exp-desc').value.trim(),amount:Number(amt),currency:document.getElementById('exp-currency').value});
@@ -1126,8 +1155,8 @@ function buildDashBars(){
 function renderDashEvents(){
   var events=getEvents(),box=document.getElementById('dash-events');if(!box)return;
   var tenants=getTenants();
-  var autoEvents=tenants.filter(function(t){return t.leaseEnd;}).map(function(t){var dl=Math.ceil((new Date(t.leaseEnd)-TODAY)/86400000);return{title:'Lease expires — '+(t.property||t.first+' '+t.last),date:t.leaseEnd,type:'Lease',daysLeft:dl,auto:true};}).filter(function(e){return e.daysLeft>0&&e.daysLeft<=90;});
-  var combined=events.map(function(e){return Object.assign({},e,{daysLeft:Math.ceil((new Date(e.date)-TODAY)/86400000)});}).concat(autoEvents).filter(function(e){return e.daysLeft>=0;}).sort(function(a,b){return a.daysLeft-b.daysLeft;}).slice(0,4);
+  var autoEvents=tenants.filter(function(t){return t.leaseEnd;}).map(function(t){var dl=daysUntil(t.leaseEnd);return{title:'Lease expires — '+(t.property||t.first+' '+t.last),date:t.leaseEnd,type:'Lease',daysLeft:dl,auto:true};}).filter(function(e){return e.daysLeft!==null&&e.daysLeft>0&&e.daysLeft<=90;});
+  var combined=events.map(function(e){return Object.assign({},e,{daysLeft:daysUntil(e.date)});}).concat(autoEvents).filter(function(e){return e.daysLeft!==null&&e.daysLeft>=0;}).sort(function(a,b){return a.daysLeft-b.daysLeft;}).slice(0,4);
   var TC={Lease:'var(--red)',Payment:'var(--green)',Inspection:'var(--amber)',Maintenance:'var(--red)',Meeting:'var(--purple)',Other:'var(--text2)'};
   box.innerHTML=combined.length?combined.map(function(e){var color=TC[e.type]||'var(--text2)',badge=e.daysLeft===0?'Today':e.daysLeft+' day'+(e.daysLeft!==1?'s':'');return'<div class="row-item"><div style="width:38px;height:38px;background:rgba(61,126,245,.08);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:'+color+';line-height:1">'+new Date(e.date).getDate()+'</span><span style="font-size:9px;color:'+color+'">'+new Date(e.date).toLocaleString('default',{month:'short'}).toUpperCase()+'</span></div><div class="row-info"><div class="row-name">'+esc(e.title)+'</div></div><span class="badge badge-amber">'+badge+'</span></div>';}).join(''):'<div style="font-size:12px;color:var(--text3);padding:12px 0">No upcoming events.</div>';
 }
@@ -1149,7 +1178,7 @@ function selectPortalTenant(idx){
   var prop=getProps().find(function(p){return p.name===t.property;});
   s('ptl-property',t.property);s('ptl-country',prop?(countryFlag(prop.country)+' '+prop.country):'—');s('ptl-rent',fmtMoney(t.rent,t.currency));s('ptl-period',(t.leaseStart||'?')+' → '+(t.leaseEnd||'?'));
   var daysEl=document.getElementById('ptl-days');
-  if(t.leaseEnd&&daysEl){var days=Math.ceil((new Date(t.leaseEnd)-TODAY)/86400000);daysEl.textContent=days>0?days+' days':(days===0?'Expires today':'Expired');daysEl.style.color=days>60?'var(--green)':days>0?'var(--amber)':'var(--red)';}
+  if(t.leaseEnd&&daysEl){var days=daysUntil(t.leaseEnd);daysEl.textContent=days>0?days+' days':(days===0?'Expires today':'Expired');daysEl.style.color=days>60?'var(--green)':days>0?'var(--amber)':'var(--red)';}
   var sb=document.getElementById('ptl-lease-status');if(sb){sb.textContent=t.payment==='Overdue'?'Overdue':'Active';sb.className='badge '+(t.payment==='Overdue'?'badge-red':'badge-green');}
   var payList=document.getElementById('ptl-payment-list');
   if(payList){var tPays=getPayments().filter(function(p){return p.tenant===name;}).slice(0,4);payList.innerHTML=tPays.length?tPays.map(function(p){var badge=PAY_STATUS_BADGE[p.status]||'badge-blue';return'<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:500">'+fmtMoney(p.amount,p.currency)+'</div><div style="font-size:11px;color:var(--text3)">Due '+fmtDate(p.dueDate)+'</div></div><span class="badge '+badge+'">'+p.status+'</span></div>';}).join(''):'<div style="font-size:12px;color:var(--text3)">No payment records.</div>';}
@@ -1482,7 +1511,8 @@ function generateLease(id){
 function copyLease(){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(_leaseText).then(function(){showToast('Lease copied','success');},function(){showToast('Copy failed','error');});}else showToast('Copy not supported','error');}
 function printLease(){var w=window.open('','_blank');if(!w){showToast('Pop-up blocked — allow pop-ups to print','error');return;}w.document.write('<html><head><title>Lease Agreement</title><style>body{font-family:Georgia,serif;line-height:1.6;max-width:720px;margin:40px auto;padding:0 24px;color:#111;white-space:pre-wrap}</style></head><body>'+_leaseText.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</body></html>');w.document.close();w.focus();setTimeout(function(){w.print();},300);}
 /* ===== Export (CSV / Excel) ===== */
-function csvEsc(v){v=(v==null?'':String(v));return'"'+v.replace(/"/g,'""')+'"';}
+function csvSafe(v){v=(v==null?'':String(v));if(/^[=+\-@\t\r]/.test(v))v="'"+v;return v;}
+function csvEsc(v){v=csvSafe(v);return'"'+v.replace(/"/g,'""')+'"';}
 function downloadBlob(filename,content,mime){var blob=new Blob([content],{type:mime||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},120);}
 function exportCSV(filename,headers,rows){var lines=[headers.map(csvEsc).join(',')];rows.forEach(function(r){lines.push(r.map(csvEsc).join(','));});downloadBlob(filename,'﻿'+lines.join('\r\n'),'text/csv;charset=utf-8');showToast('Exported '+rows.length+' row'+(rows.length!==1?'s':''),'success');}
 function exportProperties(){exportCSV('properties.csv',['Name','Type','Country','Location','Tenant','Rent/mo','Currency','Value','Size m2','Rooms','Status'],getProps().map(function(p){return[p.name,p.type,p.country,p.city||p.address||'',p.tenant||'',p.rent||0,p.currency||'USD',p.price||0,p.size||0,p.rooms||0,p.status];}));}
@@ -1490,7 +1520,7 @@ function exportTenants(){exportCSV('tenants.csv',['First','Last','Email','Phone'
 function exportPayments(){exportCSV('payments.csv',['Tenant','Property','Amount','Currency','Due Date','Paid Date','Method','Status'],getPayments().map(function(p){return[p.tenant,p.property||'',p.amount||0,p.currency||'USD',p.dueDate||'',p.paidDate||'',p.method||'',p.status];}));}
 function exportExpenses(){exportCSV('expenses.csv',['Date','Property','Category','Description','Amount','Currency'],getExpenses().map(function(e){return[e.date||'',e.property||'General',e.category,e.description||'',e.amount||0,e.currency||'USD'];}));}
 function exportContracts(){exportCSV('contracts.csv',['Tenant','Property','Lease Start','Lease End','Rent/mo','Currency','Deposit','Notice Days','Auto-renew','Status'],getTenants().map(function(t){var i=contractInfo(t);return[t.first+' '+t.last,t.property||'',t.leaseStart||'',t.leaseEnd||'',t.rent||0,t.currency||'USD',t.deposit||0,t.noticeDays||30,t.autoRenew||'no',i.label];}));}
-function xlTable(title,headers,rows){var h='<h3 style="font-family:Arial">'+esc(title)+'</h3><table border="1" cellspacing="0" cellpadding="4"><tr>'+headers.map(function(x){return'<th bgcolor="#eeeeee">'+esc(x)+'</th>';}).join('')+'</tr>';h+=rows.map(function(r){return'<tr>'+r.map(function(c){return'<td>'+esc(c==null?'':String(c))+'</td>';}).join('')+'</tr>';}).join('');return h+'</table><br>';}
+function xlTable(title,headers,rows){var h='<h3 style="font-family:Arial">'+esc(title)+'</h3><table border="1" cellspacing="0" cellpadding="4"><tr>'+headers.map(function(x){return'<th bgcolor="#eeeeee">'+esc(x)+'</th>';}).join('')+'</tr>';h+=rows.map(function(r){return'<tr>'+r.map(function(c){return'<td>'+esc(csvSafe(c))+'</td>';}).join('')+'</tr>';}).join('');return h+'</table><br>';}
 function exportAllExcel(){
   var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>';
   html+=xlTable('Properties',['Name','Type','Country','Location','Tenant','Rent/mo','Currency','Value','Size m2','Rooms','Status'],getProps().map(function(p){return[p.name,p.type,p.country,p.city||p.address||'',p.tenant||'',p.rent||0,p.currency||'USD',p.price||0,p.size||0,p.rooms||0,p.status];}));
